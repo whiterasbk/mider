@@ -41,6 +41,32 @@ class Mider {
         return this
     }
 
+    private fun genNoteMessage(current: Note, add_pitch: Byte, time: Float) {
+        val delta_time = (minimsTicks / 2 * time * 4 / duration).toInt()
+        main_track.append {
+            val note = current + ((add_pitch - pitch) * 12).toByte()
+            message(note_on, note, 0, velocity)
+            message(note_off, note, delta_time, velocity)
+        }
+    }
+
+    fun begin(block: Mider.() -> Unit): Mider {
+        initMainTrack()
+        with(this, block)
+        initMetaTrack()
+        return this
+    }
+
+    fun save(path: String) {
+        generate()
+
+        main_track.append {
+            meta(META_END_OF_TRACK)
+        }
+
+        midiFile.save(path)
+    }
+
     fun C(add_pitch: Byte = 4, time: Float = 1f) {
         genNoteMessage(C4, add_pitch, time)
     }
@@ -87,31 +113,5 @@ class Mider {
 
     fun B(add_pitch: Byte = 4, time: Float = 1f) {
         genNoteMessage(B4, add_pitch, time)
-    }
-
-    private fun genNoteMessage(current: Note, add_pitch: Byte, time: Float) {
-        val delta_time = (minimsTicks / 2 * time * 4 / duration).toInt()
-        main_track.append {
-            val note = current + ((add_pitch - pitch) * 12).toByte()
-            message(note_on, note, delta_time, velocity)
-            message(note_off, note, 0, velocity)
-        }
-    }
-
-    fun begin(block: Mider.() -> Unit): Mider {
-        initMainTrack()
-        with(this, block)
-        initMetaTrack()
-        return this
-    }
-
-    fun save(path: String) {
-        generate()
-
-        main_track.append {
-            meta(META_END_OF_TRACK)
-        }
-
-        midiFile.save(path)
     }
 }

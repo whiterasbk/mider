@@ -65,8 +65,8 @@ class Message(
         val occupied = getOccupiedBytes()
         val buffer = ByteBuffer.allocate(occupied)
         with(buffer) {
-            put(event.getHexDataAsByteBuffer())
             put(deltaTimeArray)
+            put(event.getHexDataAsByteBuffer())
             flip()
         }
         return buffer
@@ -90,9 +90,9 @@ class MetaMessage(val metaEvent: MetaEvent, var time: Int = 0, val status: Byte 
         val occupied = getOccupiedBytes()
         val buffer = ByteBuffer.allocate(occupied)
         with(buffer) {
+            put(deltaTimeArray)
             put(status)
             put(metaEvent.getHexDataAsByteBuffer())
-            put(deltaTimeArray)
             flip()
         }
 

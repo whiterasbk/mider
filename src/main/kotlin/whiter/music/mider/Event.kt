@@ -61,7 +61,7 @@ class MetaEvent(val type: MetaEventType = MetaEventType.META_END_OF_TRACK, val d
     }
 
     override fun toString(): String {
-        return "[type: $type, length: $arg_length, args: ${data.asList()}]"
+        return "[type: $type, length: ${arg_length.asList()}, args: ${data.asList()}]"
     }
 
     override fun getOccupiedBytes() = 1 + arg_length.size + data.size

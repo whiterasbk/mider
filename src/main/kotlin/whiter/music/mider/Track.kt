@@ -9,14 +9,14 @@ import kotlin.contracts.contract
 class Track {
     val msgchain = mutableListOf<IMessage>()
 
-    fun seclen(): ByteArray {
-        var sum = 0
-        for (i in msgchain) {
-            sum += i.getOccupiedBytes()
+    val seclen: ByteArray
+        get() {
+            var sum = 0
+            for (i in msgchain) {
+                sum += i.getOccupiedBytes()
+            }
+            return sum.as4lByteArray()
         }
-        sum ++ // 00计入
-        return sum.as4lByteArray()
-    }
 
     fun append(msg: IMessage): Track {
         println(msg)
@@ -50,15 +50,13 @@ class Track {
     }
 
     fun outputHead(channels: FileChannel) {
-        val occupied = 8 + 1 + 1
+        val occupied = 8
         val headerBuffer = ByteBuffer.allocate(occupied)
         with(headerBuffer) {
             put(HexConst.Mtrk)
-            put(seclen())
-            put(byteArrayOf(0)) // 0似乎是要插入的
+            put(seclen)
             flip()
         }
-
         channels.write(headerBuffer)
     }
 
