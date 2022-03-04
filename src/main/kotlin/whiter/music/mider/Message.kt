@@ -2,11 +2,6 @@ package whiter.music.mider
 
 import java.nio.ByteBuffer
 
-enum class MessageType {
-    note_off, note_on, polytouch, control_change, program_change,
-    aftertouch, pitchwheel, sysex, quarter_frame, songpos, song_select,
-    tune_request, clock, start, `continue`, stop, active_sensing, reset
-}
 
 /*
 channel	0..15	0
@@ -24,17 +19,9 @@ pos	0..16383	0
 time	any integer or float
 */
 
-interface IMessage: HasByteSize, HexData {
+//    val pos: Int = 0,
 
-    val head: ByteArray
-        get() = HexConst.Mtrk
 
-    var deltaTimeArray: ByteArray
-}
-
-class Message(
-    val event: Event,
-    val time: Int = 0,
 //    val data: Int,
 //    val type: MessageType,
 //    val channel: Int = 0,
@@ -47,9 +34,12 @@ class Message(
 //    val value: Int = 0,
 //    val velocity: Int = 64,
 //    val pitch: Int = 0,
-//    val pos: Int = 0,
-) : IMessage {
 
+interface IMessage: HasByteSize, HexData {
+    var deltaTimeArray: ByteArray
+}
+
+class Message(val event: Event, val time: Int = 0) : IMessage {
     constructor(eventType: EventType, note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0)
             : this(Event(eventType, byteArrayOf(note.id, velocity), channel), time)
     constructor(eventType: EventType, data: ByteArray, time: Int = 0, channel: Byte = 0)
