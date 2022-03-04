@@ -50,8 +50,8 @@ hs_err_pid*
 hs_err_pid*
 
 # idea
-.idea\
-build\
-.gradle\
+.idea/
+build/
+.gradle/
 
 
