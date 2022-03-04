@@ -52,6 +52,8 @@ class Message(
 
     constructor(eventType: EventType, note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0)
             : this(Event(eventType, byteArrayOf(note.id, velocity), channel), time)
+    constructor(eventType: EventType, data: ByteArray, time: Int = 0, channel: Byte = 0)
+            : this(Event(eventType, data, channel), time)
 
     override var deltaTimeArray: ByteArray
         get() = time.asvlByteArray()
@@ -68,6 +70,10 @@ class Message(
             flip()
         }
         return buffer
+    }
+
+    override fun toString(): String {
+        return "[event: $event time: $time]"
     }
 }
 
@@ -91,6 +97,10 @@ class MetaMessage(val metaEvent: MetaEvent, var time: Int = 0, val status: Byte 
         }
 
         return buffer
+    }
+
+    override fun toString(): String {
+        return "meta: [event: $metaEvent, status: $status, deltaTime: $time]"
     }
 
     override fun getOccupiedBytes(): Int {

@@ -33,25 +33,36 @@ class Event(val type: EventType, val args: ByteArray, val track: Byte = 0) : IEv
         return buffer
     }
 
+    override fun toString(): String {
+        return "[type: $type, args: ${args.asList()}, track: $track]"
+    }
 }
 
 enum class MetaEventType(val operateCode: Byte) {
-    META_TEMPO(0x51), META_END_OF_TRACK(0x2f)
+    META_TEMPO(0x51), META_END_OF_TRACK(0x2f),
+    META_KEY_SIGNATURE (0x59)
 }
 
-class MetaEvent(val type: MetaEventType = MetaEventType.META_END_OF_TRACK, val args: ByteArray = HexConst.emptyData) : IEvent {
+class MetaEvent(val type: MetaEventType = MetaEventType.META_END_OF_TRACK, val data: ByteArray = HexConst.emptyData) : IEvent {
+
+    private val arg_length: ByteArray
+        get() = data.size.asvlByteArray()
 
     override fun getHexDataAsByteBuffer(): ByteBuffer {
         val occupied = getOccupiedBytes()
         val buffer = ByteBuffer.allocate(occupied)
         with(buffer) {
             put(type.operateCode)
-            if (args.isNotEmpty()) put(args)
+            put(arg_length)
+            if (data.isNotEmpty()) put(data)
             flip()
         }
-
         return buffer
     }
 
-    override fun getOccupiedBytes() = 1 + args.size
+    override fun toString(): String {
+        return "[type: $type, length: $arg_length, args: ${data.asList()}]"
+    }
+
+    override fun getOccupiedBytes() = 1 + arg_length.size + data.size
 }

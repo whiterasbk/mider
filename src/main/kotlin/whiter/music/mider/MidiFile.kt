@@ -11,7 +11,7 @@ interface HexData {
     fun getHexDataAsByteBuffer(): ByteBuffer
 }
 
-class MidiFile(private val fileName: String, private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, private val trackdiv: Int = 960) {
+class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, private val trackdiv: Int = 960) {
     private val trackChain = mutableListOf<Track>()
     private val buffer = ByteBuffer.allocate(102)
 
@@ -20,7 +20,23 @@ class MidiFile(private val fileName: String, private val format: MidiFormat = Mi
         return this
     }
 
-    fun save() {
+    inline fun append(block: MidiFile.() -> Unit): MidiFile {
+        with(this, block)
+        return this
+    }
+
+    fun track(block: Track.() -> Unit): Track {
+        val t = Track()
+        t.append(block)
+        this.append(t)
+        return t
+    }
+
+    fun data(): ByteBuffer {
+        TODO("")
+    }
+
+    fun save(fileName: String) {
         val fos = FileOutputStream(fileName)
         val channel = fos.channel
         val seclen = 6

@@ -76,3 +76,45 @@ fun Int.asByteArray(): ByteArray {
     } else arr
 }
 
+fun bpm(ib: Int): ByteArray {
+//    val data = bpm2tempo(ib).asByteArray()
+//    val res = ByteArray(1 + data.size)
+//    res[0] = data.size.toByte()
+//    data.forEachIndexed { i, _ ->
+//        res[i + 1] = data[i]
+//    }
+    return bpm2tempo(ib).asByteArray()
+}
+
+
+fun temp() {
+    /*
+    with(track) {
+        append(Message(Event(whiter.music.mider.EventType.program_change, 0)))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.G4, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.G4, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.E5, 480 * 2))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.E5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.E5, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.E5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.G4, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.G4, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.D5, 480 * 2))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.D5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.D5, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.D5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.G4, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.G4, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.C5, 480 * 2))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.C5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.C5, 480 * 2))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.C5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.C5, 480 * 2))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.C5, 0))
+        append(Message(whiter.music.mider.EventType.note_on, whiter.music.mider.Note.D5, 480))
+        append(Message(whiter.music.mider.EventType.note_off, whiter.music.mider.Note.D5, 0))
+
+        append(MetaMessage(whiter.music.mider.MetaEventType.META_END_OF_TRACK))
+    }
+     */
+}

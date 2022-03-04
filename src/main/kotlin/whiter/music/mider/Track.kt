@@ -2,6 +2,9 @@ package whiter.music.mider
 
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 class Track {
     val msgchain = mutableListOf<IMessage>()
@@ -16,8 +19,34 @@ class Track {
     }
 
     fun append(msg: IMessage): Track {
+        println(msg)
         msgchain.add(msg)
         return this
+    }
+
+    inline fun append(block: Track.() -> Unit): Track {
+        with(this, block)
+        return this
+    }
+
+    fun meta(metaEvent: MetaEvent, time: Int = 0, status: Byte = 0xff.toByte()) {
+        append(MetaMessage(metaEvent, time, status))
+    }
+
+    fun meta(metaEventType: MetaEventType, args: ByteArray = HexConst.emptyData) {
+        append(MetaMessage(metaEventType, args))
+    }
+
+    fun message(event: Event, time: Int = 0) {
+        append(Message(event, time))
+    }
+
+    fun message(eventType: EventType, note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        append(Message(eventType, note, time, velocity, channel))
+    }
+
+    fun message(eventType: EventType, data: ByteArray, time: Int = 0, channel: Byte = 0) {
+        append(Message(eventType, data, time, channel))
     }
 
     fun outputHead(channels: FileChannel) {

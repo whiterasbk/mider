@@ -1,5 +1,7 @@
 package whiter.music.mider
 
+import kotlin.math.abs
+
 enum class Note(val id: Byte) {
     `C-1`(0), `CS-1`(1), `D-1`(2), `DS-1`(3), `E-1`(4), `F-1`(5), `FS-1`(6), `G-1`(7), `GS-1`(8), `A-1`(9), `AS-1`(10), `B-1`(11),
     C0(12), CS0(13), D0(14), DS0(15), E0(16), F0(17), FS0(18), G0(19), GS0(20), A0(21), AS0(22), B0(23),
@@ -11,7 +13,65 @@ enum class Note(val id: Byte) {
     C6(84), CS6(85), D6(86), DS6(87), E6(88), F6(89), FS6(90), G6(91), GS6(92), A6(93), AS6(94), B6(95),
     C7(96), CS7(97), D7(98), DS7(99), E7(100), F7(101), FS7(102), G7(103), GS7(104), A7(105), AS7(106), B7(107),
     C8(108), CS8(109), D8(110), DS8(111), E8(112), F8(113), FS8(114), G8(115), GS8(116), A8(117), AS8(118), B8(119),
-    C9(120), CS9(121), D9(122), DS9(123), E9(124), F9(125), FS9(126), G9(127)
+    C9(120), CS9(121), D9(122), DS9(123), E9(124), F9(125), FS9(126), G9(127);
+
+    operator fun plus(v: Byte): Note {
+        return from((id + v).toByte()) ?: throw Exception("can not find id: ${id + v} in class Note")
+    }
+
+    operator fun minus(v: Byte): Note {
+        return from((id - v).toByte()) ?: throw Exception("can not find id: ${id - v} in class Note")
+    }
+
+    fun from(id: Byte): Note? {
+        // todo 使用二分查找查找音符, kotlin的查找太特么原始了（
+        return values().find {
+            it.id == id
+        }
+    }
+
+    fun up(signature: String = "C"): Note {
+        return when(toString().replace("`", "")[0]) {
+            'E', 'B' -> this + 1
+            else -> this + 2
+        }
+    }
+
+    fun up(times: Byte, signature: String = "C"): Note {
+        if (times == 0.toByte()) return this
+
+        var res: Note = this
+        for (i in 0 until times)
+            res = res.up(signature)
+        return res
+    }
+
+    fun down(signature: String = "C"): Note {
+        return when(toString().replace("`", "")[0]) {
+            'F', 'C' -> this - 1
+            else -> this - 2
+        }
+    }
+
+    fun down(times: Byte, signature: String = "C"): Note {
+        if (times == 0.toByte()) return this
+
+        var res: Note = this
+        for (i in 0 until times)
+            res = res.down(signature)
+        return res
+    }
+
+    fun shift(n: Int): Note {
+        return if (n == 0) this else if (n > 0) {
+            up(n.toByte())
+        } else {
+            down(abs(n).toByte())
+        }
+    }
+
+
+
     /**
      * get note using:
         var j = -1
