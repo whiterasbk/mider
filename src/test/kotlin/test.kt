@@ -35,8 +35,8 @@ fun mid() {
             message(note_on, E5, 120)
             message(note_off, E5, 0)
 
-            message(note_on, E5, 120)
             message(note_off, E5, 0)
+            message(note_on, E5, 120)
 
 
 
