@@ -8,7 +8,7 @@ class Mider {
     var minimsTicks = 960
     var velocity: Byte = 100
     var bpm = 80
-    var pitch = 4
+    var pitch: Byte = 4
     /**
      * 默认音符时值为四分音符
      */
@@ -17,6 +17,24 @@ class Mider {
     private lateinit var midiFile: MidiFile
     private lateinit var main_track: Track
     private lateinit var meta_track: Track
+
+//    private lateinit var current_note: Note
+
+    val instances = listOf(NoteObject(C4))
+    val C: NoteObject
+        get() {
+            genNoteMessage(C4, pitch)
+            return instances[0]
+        }
+
+    inner class NoteObject(val type: Note) {
+
+
+
+        operator fun get(pitch: Byte) {
+            // genNoteMessage()
+        }
+    }
 
     private fun initMainTrack() : Mider {
         main_track = Track().append {
@@ -41,7 +59,7 @@ class Mider {
         return this
     }
 
-    private fun genNoteMessage(current: Note, add_pitch: Byte, time: Float) {
+    private fun genNoteMessage(current: Note, add_pitch: Byte, time: Float = 1f) {
         val delta_time = (minimsTicks / 2 * time * 4 / duration).toInt()
         main_track.append {
             val note = current + ((add_pitch - pitch) * 12).toByte()
