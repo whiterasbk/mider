@@ -5,7 +5,8 @@ import whiter.music.mider.Note.*
 
 fun main(args: Array<String>) {
 
-    mid()
+    println('='.digitToInt())
+//    mid()
 }
 
 fun mid() {

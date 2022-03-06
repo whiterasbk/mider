@@ -1,7 +1,3 @@
-import kotlin.reflect.KFunction
-import kotlin.reflect.KProperty
-
-
 fun main(args: Array<String>) {
 
     with(UI()) {
@@ -15,6 +11,8 @@ fun main(args: Array<String>) {
 //        C..B step 2
 //        C and B and D and G
 //        G E E G D D G C C C D
+
+
 
 //        (3 to 2.5) {
 //
@@ -37,9 +35,18 @@ fun main(args: Array<String>) {
 //
 //        }
 
-        5 {
-            "A+6:!D+1:+A[.25]:C A"
+        '4' {
+            A; B; O/2; C; C/2+1; C*4; C[1,2]; O
+            "C O/2 B O*4"
         }
+
+
+
+//        5 {
+////            defaultNoteDuration = 4
+//            A; B/2; C/4; O/4
+//            "A/8 B C"
+//        }
 
 //        velocity(78) {
 //
@@ -57,13 +64,24 @@ fun main(args: Array<String>) {
 }
 
 class UI {
-    val list = mutableListOf<O>()
+    val list = mutableListOf<note>()
     val i = listOf(I(0), I(1), I(2), I(3), I(4), I(5), I(6))
+    val __rest_instance = rest()
     val key_signature_keys = null
     var _pitch: Byte = 4
-    var _duration = 1.0
+    var _duration = 1.0 // 1.0为全音符
+    var defaultNoteDuration = 4 // 默认是四分音符
     var _velocity: Byte = 100
 
+    /*
+     * 开头不能是休止符
+     */
+    val O: rest
+        get() {
+            if (list.size == 0) throw Exception("rest note should not place at the beginning")
+            list[list.lastIndex].duration += getRealDuration(_duration)
+            return __rest_instance
+        }
     val C: I 
         get() {
             push('C')
@@ -97,7 +115,7 @@ class UI {
     val A : I
         get() {
             push('A')
-            println("get F")
+            println("get A")
             return i[5]
         }
     val B : I
@@ -113,21 +131,18 @@ class UI {
         println("invoke C")
         return i[0]
     }
-
     infix fun I.D(x: I): I {
         val index = list.size - 1
         insert(index, 'D')
         println("invoke D")
         return i[1]
     }
-
     infix fun I.E(x: I): I {
         val index = list.size - 1
         insert(index, 'E')
         println("invoke E")
         return i[2]
     }
-
     infix fun I.F(x: I): I {
         val index = list.size - 1
         insert(index, 'F')
@@ -154,8 +169,16 @@ class UI {
     }
 
     infix fun I.and(v: I): I {
-        list[list.lastIndex].duration = .0
+        list[list.lastIndex].duration = getRealDuration(.0)
         return this
+    }
+
+    infix fun I.up(v: Int): I {
+        TODO("升高半音")
+    }
+
+    infix fun I.down(v: Int): I {
+        TODO("降低半音")
     }
 
     infix fun Iin.step(v: Byte) {
@@ -195,17 +218,54 @@ class UI {
     }
 
     operator fun I.times(x: Double) : I {
-        list[list.lastIndex].duration = x
+        list[list.lastIndex].duration = getRealDuration(x)
         println("$this plus $x")
         return this
+    }
+
+    operator fun I.div(x: Double) : I {
+        return this * (1.0 / x)
     }
 
     operator fun I.times(x: Float) : I {
         return this * x.toDouble()
     }
 
+    operator fun I.div(x: Float) : I {
+        return this * (1.0 / x)
+    }
+
     operator fun I.times(x: Int) : I {
         return this * x.toDouble()
+    }
+
+    operator fun I.div(x: Int) : I {
+        return this * (1.0 / x)
+    }
+
+    operator fun rest.times(v: Double) {
+        list[list.lastIndex].duration -= getRealDuration(_duration)
+        list[list.lastIndex].duration += getRealDuration(_duration) * v
+    }
+
+    operator fun rest.times(v: Float) {
+        this * v.toDouble()
+    }
+
+    operator fun rest.times(v: Int) {
+        this * v.toDouble()
+    }
+
+    operator fun rest.div(v: Double) {
+        this * (1.0 / v)
+    }
+
+    operator fun rest.div(v: Float) {
+        this * (1.0 / v)
+    }
+
+    operator fun rest.div(v: Int) {
+        this * (1.0 / v)
     }
 
     operator fun Int.invoke(block: UI.() -> Any) {
@@ -216,14 +276,29 @@ class UI {
         _pitch = __pitch
     }
 
+    // 设定任意时值
     operator fun Double.invoke(block: UI.() -> Any) {
+        val _dnd = defaultNoteDuration
+        defaultNoteDuration = 1
         val __duration = _duration
         _duration = this
         val res = block()
         if (res is String) parse(res)
         _duration = __duration
+        defaultNoteDuration = _dnd
     }
 
+    // 设置默认音符时值, 这样可以避免出现小数（
+    operator fun Char.invoke(block: UI.() -> Any) {
+        if (this !in "123456789") throw Exception("can not set default note duration to $this, it should in 1-9")
+        val _dnd = defaultNoteDuration
+        defaultNoteDuration = this.digitToInt()
+        val res = block()
+        if (res is String) parse(res)
+        defaultNoteDuration = _dnd
+    }
+
+    // 设定音高和任意时值
     operator fun Pair<Int, Double>.invoke(block: UI.() -> Any) {
         val __pitch = _pitch
         _pitch = this.first.toByte()
@@ -231,11 +306,31 @@ class UI {
         val __duration = _duration
         _duration = this.second
 
+        val _dnd = defaultNoteDuration
+        defaultNoteDuration = 1
+
         val res = block()
         if (res is String) parse(res)
 
         _pitch = __pitch
         _duration = __duration
+        defaultNoteDuration = _dnd
+    }
+
+    // 其实只是想避免出现小数（
+    @JvmName("invokeIntChar")
+    operator fun Pair<Int, Char>.invoke(block: UI.() -> Any) {
+        val __pitch = _pitch
+        _pitch = this.first.toByte()
+
+        val _dnd = defaultNoteDuration
+        defaultNoteDuration = this.second.digitToInt()
+
+        val res = block()
+        if (res is String) parse(res)
+
+        _pitch = __pitch
+        defaultNoteDuration = _dnd
     }
 
     operator fun I.invoke(arg: String = "", block: UI.() -> Any) {
@@ -276,7 +371,20 @@ class UI {
             val first_letter = it[0]
             val iDuration = if (isChord) 0.0 else _duration
 
-            if (length == 1) {
+            if (first_letter == 'O') {
+                // rest
+                if (list.size == 0) throw Exception("rest note should not place at the beginning")
+
+                if (length == 1) {
+                    list[list.lastIndex].duration += getRealDuration(_duration)
+                } else if (it[1] == '*') {
+                    val v = it.substring(2 until it.length).toDouble()
+                    list[list.lastIndex].duration += getRealDuration(_duration) * v
+                } else if (it[1] == '/') {
+                    val v = it.substring(2 until it.length).toDouble()
+                    list[list.lastIndex].duration += getRealDuration(_duration) * (1.0 / v)
+                } else throw Exception("parse failed")
+            } else if (length == 1) {
                 push(it[0], duration = iDuration)
             } else if (length == 2) {
                 push(it[1], duration = iDuration, sfn = when(first_letter) {
@@ -286,13 +394,11 @@ class UI {
                     else -> SFNType.Self
                 })
             } else {
-
                 if (it.contains(":")) {
                     it.split(":").forEachIndexed { i, e ->
                         parse(e, i != 0)
                     }
                 } else {
-
                     var snf = SFNType.Self
                     var withoutsnf: String = it
 
@@ -315,11 +421,14 @@ class UI {
                         } else if (args.size == 2) {
                             push(noteName, args[1].toInt().toByte(), args[0].toDouble(), snf)
                         } else throw Exception("parse failed")
-                    } else if ('+' in withoutsnf || '*' in withoutsnf || '-' in withoutsnf) {
-                        val d = if ('*' in withoutsnf) (withoutsnf.split('*')[1].split('+')[0].split('-')[0]).toDouble() else iDuration
+                    } else if ('+' in withoutsnf || '*' in withoutsnf || '-' in withoutsnf || '/' in withoutsnf) {
+                        val d = if ('*' in withoutsnf)
+                                (withoutsnf.split('*')[1].split('+')[0].split('-')[0]).toDouble()
+                            else if ('/' in withoutsnf) 1.0 / ((withoutsnf.split('/')[1].split('+')[0].split('-')[0]).toDouble()) else iDuration
+
                         val p = if ('+' in withoutsnf)
-                            (withoutsnf.split('+')[1].split('*')[0]).toInt().toByte()
-                        else if ('-' in withoutsnf) (-(withoutsnf.split('-')[1].split('*')[0]).toInt()).toByte() else 0
+                            (withoutsnf.split('+')[1].split('*')[0].split('/')[0]).toInt().toByte()
+                            else if ('-' in withoutsnf) (-(withoutsnf.split('-')[1].split('*')[0].split('/')[0]).toInt()).toByte() else 0
 
                         push(noteName, (_pitch + p).toByte(), d, snf)
                     } else throw Exception("parse failed")
@@ -331,21 +440,27 @@ class UI {
     }
 
     private fun push(x: Char, pitch: Byte = _pitch, duration: Double = _duration, sfn: SFNType = SFNType.Self) {
-        list.add(O(x, pitch, duration, _velocity, sfn))
+        list.add(note(x, pitch, getRealDuration(duration), _velocity, sfn))
     }
 
     private fun pop() {
         list.removeLast()
     }
 
-    private fun insert(index: Int, x: Char, pitch: Byte = _pitch, duration: Double = _duration, sfn: SFNType = SFNType.Self) {
-        list.add(index, O(x, pitch, duration, _velocity, sfn))
+    private fun getRealDuration(d: Double): Double {
+        if (defaultNoteDuration == 1) return d
+        if (d < 0) throw Exception("what if duration can be negative? anyway, now the duration of note should be positive")
+        return d * (1.0 / defaultNoteDuration)
     }
 
-    class O(var note: Char, var pitch: Byte = 4, var duration: Double = 1.0, var velocity: Byte = 100, var sfn: SFNType = SFNType.Self) {
+    private fun insert(index: Int, x: Char, pitch: Byte = _pitch, duration: Double = _duration, sfn: SFNType = SFNType.Self) {
+        list.add(index, note(x, pitch, getRealDuration(duration), _velocity, sfn))
+    }
+
+    class note(var name: Char, var pitch: Byte = 4, var duration: Double = 1.0, var velocity: Byte = 100, var sfn: SFNType = SFNType.Self) {
 
         init {
-            if (note !in "CDEFGAB") throw Exception("unsupport note: $note")
+            if (name !in "CDEFGAB") throw Exception("unsupport note: $name")
             if (duration < 0) throw Exception("duration:$duration has to > 0")
         }
 
@@ -355,7 +470,7 @@ class UI {
                 SFNType.Flat -> 'b'
                 SFNType.Natural -> '&'
                 else -> ""
-            }}$note$pitch*${duration}v$velocity)"
+            }}$name${pitch}_${duration}_$velocity)"
         }
     }
 
@@ -367,12 +482,14 @@ class UI {
 
     }
 
+    inner class rest
+
     inner class I(val id: Byte) {
         operator fun get(duration: Double, pitch: Byte = 4) : I {
             if (pitch != 4.toByte()) {
                 list[list.lastIndex].pitch = pitch
             }
-            list[list.lastIndex].duration = duration
+            list[list.lastIndex].duration = getRealDuration(duration)
             return this
         }
 
