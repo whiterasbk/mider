@@ -35,10 +35,14 @@ fun main(args: Array<String>) {
 //
 //        }
 
-        '4' {
-            A; B; O/2; C; C/2+1; C*4; C[1,2]; O
-            "C O/2 B O*4"
-        }
+
+
+
+
+//        '4' {
+//            A; B; O/2; C; C/2+1; C*4; C[1,2]; O
+//            "C O/2 B O*4"
+//        }
 
 
 
@@ -181,25 +185,27 @@ class UI {
         TODO("降低半音")
     }
 
+    infix fun I.dot(v: Int): I {
+        TODO("附点音符")
+    }
+
     infix fun Iin.step(v: Byte) {
-        TODO("imp")
+        TODO("步长")
     }
 
     operator fun I.rangeTo(x: I) : Iin {
-        TODO("imp")
+        TODO("音符范围")
         x.id - this.id
         return Iin(0, 0)
     }
 
     operator fun I.unaryPlus() : I {
-        TODO("imp")
-        println("+$this")
+        list[list.lastIndex].sfn = SFNType.Sharp
         return this
     }
 
     operator fun I.unaryMinus(): I {
-        TODO("imp")
-        println("-$this")
+        list[list.lastIndex].sfn = SFNType.Flat
         return this
     }
 
@@ -271,8 +277,7 @@ class UI {
     operator fun Int.invoke(block: UI.() -> Any) {
         val __pitch = _pitch
         _pitch = this.toByte()
-        val res = block()
-        if (res is String) parse(res)
+        !block
         _pitch = __pitch
     }
 
@@ -282,8 +287,7 @@ class UI {
         defaultNoteDuration = 1
         val __duration = _duration
         _duration = this
-        val res = block()
-        if (res is String) parse(res)
+        !block
         _duration = __duration
         defaultNoteDuration = _dnd
     }
@@ -293,8 +297,7 @@ class UI {
         if (this !in "123456789") throw Exception("can not set default note duration to $this, it should in 1-9")
         val _dnd = defaultNoteDuration
         defaultNoteDuration = this.digitToInt()
-        val res = block()
-        if (res is String) parse(res)
+        !block
         defaultNoteDuration = _dnd
     }
 
@@ -309,8 +312,7 @@ class UI {
         val _dnd = defaultNoteDuration
         defaultNoteDuration = 1
 
-        val res = block()
-        if (res is String) parse(res)
+        !block
 
         _pitch = __pitch
         _duration = __duration
@@ -326,8 +328,7 @@ class UI {
         val _dnd = defaultNoteDuration
         defaultNoteDuration = this.second.digitToInt()
 
-        val res = block()
-        if (res is String) parse(res)
+        !block
 
         _pitch = __pitch
         defaultNoteDuration = _dnd
@@ -335,13 +336,12 @@ class UI {
 
     operator fun I.invoke(arg: String = "", block: UI.() -> Any) {
         pop()
-        val res = block()
-        if (res is String) parse(res)
+        !block
         TODO("imp: 调号")
     }
 
     operator fun I.not(): I {
-        // todo 还原记号 natural
+        list[list.lastIndex].sfn = SFNType.Natural
         return this
     }
 
@@ -350,18 +350,23 @@ class UI {
     }
 
     fun repeat(times: Int, block: UI.() -> Any) {
-        if (times == 0) return
-        for (i in 0 until times) {
-            val res = block()
-            if (res is String) parse(res)
-        }
+        if (times <= 0) return
+        for (i in 0 until times) !block
+    }
+
+    fun def(block: UI.() -> Any): UI.() -> Any {
+        return block
+    }
+
+    operator fun (UI.() -> Any).not() {
+        val res = this()
+        if (res is String) parse(res)
     }
 
     fun velocity(v: Byte, block: UI.() -> Any) {
         val __velocity = _velocity
         _velocity = v
-        val res = block()
-        if (res is String) parse(res)
+        !block
         _velocity = __velocity
     }
 
@@ -388,8 +393,8 @@ class UI {
                 push(it[0], duration = iDuration)
             } else if (length == 2) {
                 push(it[1], duration = iDuration, sfn = when(first_letter) {
-                    '-' -> SFNType.Flat
-                    '+' -> SFNType.Sharp
+                    '-', 'b' -> SFNType.Flat
+                    '+', '#' -> SFNType.Sharp
                     '!' -> SFNType.Natural
                     else -> SFNType.Self
                 })
@@ -402,10 +407,10 @@ class UI {
                     var snf = SFNType.Self
                     var withoutsnf: String = it
 
-                    if (first_letter in "-+!") {
+                    if (first_letter in "-+!b#") {
                         snf = when(first_letter) {
-                            '-' -> SFNType.Flat
-                            '+' -> SFNType.Sharp
+                            '-', 'b' -> SFNType.Flat
+                            '+', '#' -> SFNType.Sharp
                             '!' -> SFNType.Natural
                             else -> SFNType.Self
                         }
@@ -483,6 +488,10 @@ class UI {
     }
 
     inner class rest
+
+    inner class chord() {
+        // todo 实现和弦
+    }
 
     inner class I(val id: Byte) {
         operator fun get(duration: Double, pitch: Byte = 4) : I {
