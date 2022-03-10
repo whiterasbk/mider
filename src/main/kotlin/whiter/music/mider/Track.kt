@@ -33,15 +33,27 @@ class Track {
         append(MetaMessage(metaEvent, time, status))
     }
 
-    fun meta(metaEventType: MetaEventType, args: ByteArray = HexConst.emptyData) {
-        append(MetaMessage(metaEventType, args))
+//    fun meta(metaEventType: MetaEventType, args: ByteArray = HexConst.emptyData) {
+//        append(MetaMessage(metaEventType, args))
+//    }
+
+    fun meta(metaEventType: MetaEventType, vararg args: Byte = HexConst.emptyData) {
+        append(MetaMessage(metaEventType, args = args))
     }
 
     fun message(event: Event, time: Int = 0) {
         append(Message(event, time))
     }
 
+    fun message(eventType: EventType, time: Int = 0, vararg data: Byte, channel: Byte = 0) {
+        append(Message(eventType, time, data = data, channel))
+    }
+
     fun message(eventType: EventType, note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        append(Message(eventType, note, time, velocity, channel))
+    }
+
+    fun message(eventType: EventType, note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         append(Message(eventType, note, time, velocity, channel))
     }
 

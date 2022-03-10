@@ -45,7 +45,7 @@ class Mider {
 
     private fun initMetaTrack() : Mider {
         meta_track = Track().append {
-            meta(META_TEMPO, bpm(bpm))
+            meta(META_TEMPO, args = bpm(bpm))
             meta(META_END_OF_TRACK)
         }
         return this

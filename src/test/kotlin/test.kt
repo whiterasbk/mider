@@ -5,7 +5,7 @@ import whiter.music.mider.Note.*
 
 fun main(args: Array<String>) {
 
-    println('='.digitToInt())
+    for (i in 0 until 1) println(23)
 //    mid()
 }
 
@@ -14,12 +14,12 @@ fun mid() {
     midi.append {
 
         track {
-            meta(META_TEMPO, bpm(80))
+            meta(META_TEMPO, args = bpm(80))
             meta(META_END_OF_TRACK)
         }
 
         track {
-            message(program_change, byteArrayOf(0))
+            message(program_change, 0)
             message(note_off, G4, 0)
             message(note_on, G4, 480)
             message(note_off, E5, 0)

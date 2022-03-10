@@ -23,10 +23,12 @@ enum class Note(val id: Byte) {
         return from((id - v).toByte()) ?: throw Exception("can not find id: ${id - v} in class Note")
     }
 
-    fun from(id: Byte): Note? {
-        // todo 使用二分查找查找音符, kotlin的查找太特么原始了（
-        return values().find {
-            it.id == id
+    companion object {
+        fun from(id: Byte): Note? {
+            // todo 使用二分查找查找音符, kotlin的查找太特么原始了（
+            return values().find {
+                it.id == id
+            }
         }
     }
 

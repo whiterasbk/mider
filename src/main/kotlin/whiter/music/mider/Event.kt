@@ -40,7 +40,8 @@ class Event(val type: EventType, val args: ByteArray, val track: Byte = 0) : IEv
 
 enum class MetaEventType(val operateCode: Byte) {
     META_TEMPO(0x51), META_END_OF_TRACK(0x2f),
-    META_KEY_SIGNATURE (0x59)
+    META_KEY_SIGNATURE (0x59),
+    META_TIME_SIGNATURE(0x58)
 }
 
 class MetaEvent(val type: MetaEventType = MetaEventType.META_END_OF_TRACK, val data: ByteArray = HexConst.emptyData) : IEvent {
