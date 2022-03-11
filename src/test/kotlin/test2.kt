@@ -1,4 +1,5 @@
 import whiter.music.mider.Note
+import kotlin.reflect.KProperty
 
 fun main(args: Array<String>) {
 
@@ -104,22 +105,28 @@ fun main(args: Array<String>) {
 class MDSL {
     val list = mutableListOf<note>()
     private val i = listOf(I(0), I(2), I(4), I(5), I(7), I(9), I(11))
+    private val entrusti = mutableMapOf<String, note>()
+    private val entrustc = mutableMapOf<String, MutableList<note>>()
     private val __rest_instance = rest()
+    val major = 0
+    val minor = 1
+    val majorScale = arrayOf(2, 2, 1, 2, 2, 2, 1)
+    val minorScale = arrayOf(2, 1, 2, 2, 1, 2, 2)
     var _pitch: Byte = 4
     var _duration = 1.0 // 1.0为全音符
     var defaultNoteDuration = 4 // 默认是四分音符
     var _velocity: Byte = 100
-    val major = 0
-    val minor = 1
-    var diatonic = arrayOf(2, 2, 1, 2, 2, 2, 1)
     var program: instrument = instrument.piano
     var bpm = 80
-    var timeSignature = 4 to 4
+    var timeSignature: Pair<Int, Int>? = null //= 4 to 4
     val signatureKeysList = mutableListOf<Pair<Pair<Ks, Int>, IntRange>>()
-    var keySignature: Pair<Ks, Int> = getKeySignatureFromN(note('C'), major)
+    var keySignature: Pair<Ks, Int>? = null // getKeySignatureFromN(note('C'), major)
 
     private val current: note
         get() = list[list.lastIndex]
+    private val last: note
+        get() = list[list.lastIndex - 1]
+
     val end = 0
 
     /*
@@ -174,142 +181,21 @@ class MDSL {
             return i[6]
         }
 
-
-    infix fun I.and(v: I): I {
-        current.duration = getRealDuration(.0)
-        return this
+    operator fun (MDSL.() -> Any).not() {
+        val res = this()
+        if (res is String) parse(res)
     }
 
-    infix fun I.up(v: Int): I {
-        current += v.toByte()
-        return this
+    operator fun String.not() {
+        parse(this)
     }
 
-    infix fun I.down(v: Int): I {
-        current -= v.toByte()
-        return this
-    }
-
-    infix fun I.dot(v: Int): I {
-        current.duration *= Math.pow(1.5, v.toDouble())
-        return this
-    }
-
-    infix fun Iin.step(v: Byte) {
-        clear(list)
-        for (i in from.code until (to.code) step v.toInt()) {
-            push(fromNoteId(i.toByte()))
+    private fun MutableList<note>.clone(): MutableList<note> {
+        val res = mutableListOf<note>()
+        this.forEach {
+            res += it.clone()
         }
-    }
-
-    infix fun Iin.under(v: Array<Int>) {
-        clear(list)
-        var i = from.code.toInt()
-        var loopc = 0
-        while (i <= to.code) {
-            push(fromNoteId(i.toByte()))
-            i += v[loopc%v.size]
-            loopc++
-        }
-    }
-
-    operator fun I.rangeTo(x: I) : Iin {
-        val lastIndex = list.lastIndex
-        val from = list[list.lastIndex - 1]
-        val to = current
-
-        if (from.code > to.code) throw Exception("from.code has to > to.code")
-
-        pop(2)
-
-        for (i in from.code..to.code) {
-            push(fromNoteId(i.toByte()))
-        }
-
-        return Iin(lastIndex, list.lastIndex, from, to)
-    }
-
-    operator fun I.unaryPlus() : I {
-        current.sfn = SFNType.Sharp
-        return this
-    }
-
-    operator fun I.unaryMinus(): I {
-        current.sfn = SFNType.Flat
-        return this
-    }
-
-    operator fun I.plus(x: Byte) : I {
-        val origin = current.pitch
-        current.pitch = (x + origin).toByte()
-        println("$this plus $x")
-        return this
-    }
-
-    operator fun I.plusAssign(x: Byte) {
-        current += x
-    }
-
-    operator fun I.minus(x: Byte) : I {
-        val origin = current.pitch
-        current.pitch = (origin - x).toByte()
-        println("$this minus $x")
-        return this
-    }
-
-    operator fun I.minusAssign(x: Byte) {
-        current -= x
-    }
-
-    operator fun I.times(x: Double) : I {
-        current.duration = getRealDuration(x)
-        println("$this plus $x")
-        return this
-    }
-
-    operator fun I.div(x: Double) : I {
-        return this * (1.0 / x)
-    }
-
-    operator fun I.times(x: Float) : I {
-        return this * x.toDouble()
-    }
-
-    operator fun I.div(x: Float) : I {
-        return this * (1.0 / x)
-    }
-
-    operator fun I.times(x: Int) : I {
-        return this * x.toDouble()
-    }
-
-    operator fun I.div(x: Int) : I {
-        return this * (1.0 / x)
-    }
-
-    operator fun rest.times(v: Double) {
-        current.duration -= getRealDuration(_duration)
-        current.duration += getRealDuration(_duration) * v
-    }
-
-    operator fun rest.times(v: Float) {
-        this * v.toDouble()
-    }
-
-    operator fun rest.times(v: Int) {
-        this * v.toDouble()
-    }
-
-    operator fun rest.div(v: Double) {
-        this * (1.0 / v)
-    }
-
-    operator fun rest.div(v: Float) {
-        this * (1.0 / v)
-    }
-
-    operator fun rest.div(v: Int) {
-        this * (1.0 / v)
+        return res
     }
 
     operator fun Int.invoke(block: MDSL.() -> Any) {
@@ -361,38 +247,52 @@ class MDSL {
         }
     }
 
-    // todo 标记调号
-    operator fun I.invoke(mf: Int = 0, block: MDSL.() -> Any) {
-        val sfmf = getKeySignatureFromN(current, mf)
-        pop()
-        val smark = list.size
-        !block
-        val emark = list.size
-        signatureKeysList.add(sfmf to (smark until emark))
+    @JvmName("invokeII")
+    operator fun Pair<I, I>.invoke(block: MDSL.() -> Any) {
+        val to = first(major)
+        val from = second(major)
+        (from to to) (block)
     }
 
-    @JvmName("invokeII")
-    operator fun Pair<I, I>.invoke(block: MDSL.() -> Any){
-        val dp = current.code - list[list.lastIndex - 1].code  // this.second.id - this.first.id
-        pop(2)
+    @JvmName("invokeKsIntKsInt")
+    operator fun Pair<Pair<Ks, Int>, Pair<Ks, Int>>.invoke(block: MDSL.() -> Any) {
+        val dp = second.first.code - first.first.code
 
-        val smark = list.size
-        !block
-        val emark = list.size
-        if (smark == emark) return
-
-        // todo 小调
-        signatureKeysList.add(getKeySignatureFromN(current, major) to (smark until emark))
-
-        for (i in smark until emark) {
-            if (list[i].sfn != SFNType.Natural) {
-                list[i] += dp.toByte()
-                // todo 是否要升高八度
-//                list[i].pitch = (list[i].pitch + if (dp > 0) 1 else 0).toByte()
+        getInsertedNotes(block).forEach {
+            if (it.sfn != SFNType.Natural) {
+                it += dp.toByte()
             }
         }
 
+        // todo 小调
+//        signatureKeysList.add(first.first to first.second to (smark until emark))
+
+//        if (first.second == second.second) {
+//            // 小调转小调
+//            if (first.first == second.first) {
+//                // 相同调性, 只要降低367音即可
+//            }
+//        }
+//
+//        for (i in smark until emark) {
+//            if (list[i].sfn != SFNType.Natural) {
+//                list[i] += dp.toByte()
+//                // todo 是否要升高八度
+////                list[i].pitch = (list[i].pitch + if (dp > 0) 1 else 0).toByte()
+//            }
+//        }
     }
+
+
+    // todo 使用大调还是小调
+    fun use(mode: IntArray, root: note, block: MDSL.() -> Any) {
+
+        getInsertedNotes(block).forEach {
+
+        }
+    }
+
+
 
     fun repeat(times: Int, block: MDSL.() -> Any) {
         if (times <= 0) return
@@ -401,20 +301,6 @@ class MDSL {
 
     fun def(block: MDSL.() -> Any): MDSL.() -> Any {
         return block
-    }
-
-    //    operator fun I.not(): I {
-//        current.sfn = SFNType.Natural
-//        return this
-//    }
-
-    operator fun String.not() {
-        parse(this)
-    }
-
-    operator fun (MDSL.() -> Any).not() {
-        val res = this()
-        if (res is String) parse(res)
     }
 
     fun velocity(v: Byte, block: MDSL.() -> Any) {
@@ -428,6 +314,23 @@ class MDSL {
     fun keySignature(v: I, s: Int) {
         keySignature = getKeySignatureFromN(current, s)
         pop()
+    }
+
+    // 获取block执行期间插入的音符
+    private fun getInsertedNotes(block: MDSL.() -> Any): List<note> {
+        val res = mutableListOf<note>()
+
+        val start = list.size
+        !block
+        val end = list.size
+
+        if (start == end) return listOf() // 返回空列表
+
+        for (i in start until end) {
+            res += list[i]
+        }
+
+        return res
     }
 
     private fun parse(str: String, isChord: Boolean = false) {
@@ -563,7 +466,7 @@ class MDSL {
             }
         }
 
-        fun getKeySignatureFromN(n: note, s: Int): Pair<Ks, Int> {
+        private fun getKeySignatureFromN(n: note, s: Int): Pair<Ks, Int> {
 //            val sf = when(n.name) {
 //                'C' -> {
 //                    if (n.sfn == SFNType.Sharp) 7 else 0
@@ -632,9 +535,9 @@ class MDSL {
     }
 
     // key signature
-    enum class Ks(val semitone: Int) {
-        C(0), G(1), D(2), A(3), E(4), B(5), `#F`(6),
-        `#C`(7), F(-1), bB(-2), bE(-3), bA(-4), bD(-5), bG(-6), bC(-7)
+    enum class Ks(val semitone: Int, val code: Int) {
+        C(0, 0), G(1, 7), D(2, 2), A(3, 9), E(4, 4), B(5, 11), `#F`(6, 6),
+        `#C`(7, 1), F(-1, 5), bB(-2, 10), bE(-3, 3), bA(-4, 8), bD(-5, 1), bG(-6, 6), bC(-7, 11)
     }
 
     enum class instrument(val id: Int) {
@@ -647,11 +550,11 @@ class MDSL {
         koto(108), fiddle(111), tinklebell(113)
     }
 
-    inner class note(var name: Char, var pitch: Byte = _pitch, var duration: Double = getRealDuration(_duration), var velocity: Byte = _velocity, var sfn: SFNType = SFNType.Self) {
+    inner class note(var name: Char, var pitch: Byte = _pitch, var duration: Double = getRealDuration(_duration), var velocity: Byte = _velocity, var sfn: SFNType = SFNType.Self): Cloneable {
 
         init {
             if (name !in "CDEFGAB") throw Exception("unsupport note: $name")
-            if (duration < 0) throw Exception("duration:$duration has to > 0")
+            if (duration < 0) throw Exception("duration: $duration has to > 0")
         }
 
         var code: Byte = 0
@@ -721,36 +624,132 @@ class MDSL {
             code = (code - v).toByte()
         }
 
-        override fun toString(): String {
-            return "(${when(sfn){
-                SFNType.Sharp -> '#'
-                SFNType.Flat -> 'b'
-                SFNType.Natural -> '&'
-                else -> ""
-            }}$name${pitch}_${duration}_$velocity)"
-        }
+        operator fun minus(v: note): Int = this.code - v.code
+
+        override fun toString(): String = "[${sfn.symbol}$name${pitch}|${duration}|$velocity]"
+
+        public override fun clone(): note = super.clone() as note
     }
 
     enum class SFNType(val symbol: Char) {
-        Flat('#'), Sharp('S'), Natural('N'), Self(' ')
+        Flat('b'), Sharp('#'), Natural('@'), Self('&')
     }
 
-    class Iin(val first: Int, val last: Int, val from: note, val to: note) {
-        override fun toString(): String {
-            return "first: $first; last: $last; from: $from; to: $to"
+    inner class Iin(val first: Int, val last: Int, val from: note, val to: note) {
+
+        override fun toString(): String = "first: $first; last: $last; from: $from; to: $to"
+
+        fun clear() {
+            for (i in first..(last + 1)) {
+                list.removeLast()
+            }
         }
 
-        fun clear(l: MutableList<note>) {
-            for (i in first..(last + 1)) {
-                l.removeLast()
+        infix fun step(v: Byte) {
+            clear()
+            for (i in from.code until (to.code) step v.toInt()) {
+                push(fromNoteId(i.toByte()))
+            }
+        }
+
+        infix fun under(v: Array<Int>) {
+            clear()
+            var i = from.code.toInt()
+            var loopc = 0
+            while (i <= to.code) {
+                push(fromNoteId(i.toByte()))
+                i += v[loopc % v.size]
+                loopc++
             }
         }
     }
 
-    inner class rest
+    inner class rest {
+        operator fun times(v: Double) {
+            current.duration -= getRealDuration(_duration)
+            current.duration += getRealDuration(_duration) * v
+        }
 
-    inner class chord() {
-        // todo 实现和弦
+        operator fun times(v: Float) {
+            this * v.toDouble()
+        }
+
+        operator fun times(v: Int) {
+            this * v.toDouble()
+        }
+
+        operator fun div(v: Double) {
+            this * (1.0 / v)
+        }
+
+        operator fun div(v: Float) {
+            this * (1.0 / v)
+        }
+
+        operator fun div(v: Int) {
+            this * (1.0 / v)
+        }
+    }
+
+    // todo 实现和弦以及转位
+    inner class chord(vararg notes: note) {
+        val note_list = notes.toMutableList()
+        val main: note get() = note_list[0]
+
+        init {
+            if (note_list.size < 2) throw Exception("a chord require at least 2 notes")
+            note_list[1].duration = getRealDuration(.0)
+        }
+
+        operator fun get(pitch: Byte): chord {
+            if (pitch != 4.toByte()) {
+                main.pitch = pitch
+            }
+            return this
+        }
+
+        operator fun plus(v: I): chord {
+            current.duration = getRealDuration(.0)
+            note_list.add(current)
+            return this
+        }
+
+        operator fun plus(v: chord): chord {
+            v.main.duration = getRealDuration(.0)
+            note_list.addAll(v.note_list)
+            return this
+        }
+
+        operator fun times(v: Double): chord {
+            main.duration = getRealDuration(v)
+            return this
+        }
+
+        operator fun times(v: Float): chord = this * v.toDouble()
+
+        operator fun times(v: Int): chord = this * v.toDouble()
+
+        operator fun div(v: Double): chord = this * (1.0 / v)
+
+        operator fun div(v: Float): chord = this / v.toDouble()
+
+        operator fun div(v: Int): chord = this / v.toDouble()
+
+        operator fun div(v: I): chord {
+            // todo inversion
+            return this
+        }
+
+        operator fun getValue(nothing: Nothing?, property: KProperty<*>): chord {
+            entrustc[property.name]?.let { list += it } ?: throw Exception("id ${property.name} is miss match")
+            return this
+        }
+
+        infix fun into(id: String): chord {
+            entrustc[id] = list.clone()
+            list -= note_list.toSet()
+            return this
+        }
     }
 
     inner class I(val id: Byte) {
@@ -767,7 +766,38 @@ class MDSL {
         })
 
         init {
-            if (id !in byteArrayOf(0, 2, 4, 5, 7, 9, 11)); // do sth.?
+            // if (id !in byteArrayOf(0, 2, 4, 5, 7, 9, 11)); // do sth.?
+        }
+
+        operator fun getValue(nothing: Nothing?, property: KProperty<*>): I {
+            entrusti[property.name]?.let { push(it) } ?: throw Exception("id ${property.name} is miss match")
+            return this
+        }
+
+        // todo 获得关系小调
+        infix fun relative(block: MDSL.() -> Any) {
+
+            !block
+        }
+
+        infix fun into(id: String): I {
+            entrusti[id] = current.clone()
+            pop()
+            return this
+        }
+
+        operator fun invoke(mf: Int): Pair<Ks, Int> {
+            val res = getKeySignatureFromN(current, mf)
+            pop()
+            return res
+        }
+
+        operator fun invoke(mf: Int = major, block: MDSL.() -> Any) {
+            val tothat = this(mf)
+
+            keySignature?.let {
+                (it to tothat) (block)
+            } ?: (C(major) to tothat) (block)
         }
 
         operator fun get(pitch: Byte, duration: Double = _duration) : I {
@@ -794,6 +824,91 @@ class MDSL {
             current.sfn = SFNType.Natural
             return this
         }
+
+        infix fun up(v: Int): I {
+            current += v.toByte()
+            return this
+        }
+
+        infix fun down(v: Int): I {
+            current -= v.toByte()
+            return this
+        }
+
+        val dot: I get() = this dot 1
+
+        infix fun dot(v: Int): I {
+            current.duration *= Math.pow(1.5, v.toDouble())
+            return this
+        }
+
+        operator fun rangeTo(x: I) : Iin {
+            val lastIndex = list.lastIndex
+            val from = list[list.lastIndex - 1]
+            val to = current
+
+            if (from.code > to.code) throw Exception("from.code has to > to.code")
+
+            pop(2)
+
+            for (i in from.code..to.code) {
+                push(fromNoteId(i.toByte()))
+            }
+
+            return Iin(lastIndex, list.lastIndex, from, to)
+        }
+
+        operator fun unaryPlus() : I {
+            current.sfn = SFNType.Sharp
+            return this
+        }
+
+        operator fun unaryMinus(): I {
+            current.sfn = SFNType.Flat
+            return this
+        }
+
+        operator fun plus(x: Byte) : I {
+            val origin = current.pitch
+            current.pitch = (x + origin).toByte()
+            println("$this plus $x")
+            return this
+        }
+
+        operator fun plus(x: I): chord {
+            return chord(last, current)
+        }
+
+        operator fun plusAssign(x: Byte) {
+            current += x
+        }
+
+        operator fun minus(x: Byte) : I {
+            val origin = current.pitch
+            current.pitch = (origin - x).toByte()
+            println("$this minus $x")
+            return this
+        }
+
+        operator fun minusAssign(x: Byte) {
+            current -= x
+        }
+
+        operator fun times(x: Double) : I {
+            current.duration = getRealDuration(x)
+            println("$this plus $x")
+            return this
+        }
+
+        operator fun times(x: Int) : I = this * x.toDouble()
+
+        operator fun times(x: Float) : I = this * x.toDouble()
+
+        operator fun div(x: Double) : I = this * (1.0 / x)
+
+        operator fun div(x: Float) : I = this / x.toDouble()
+
+        operator fun div(x: Int) : I = this / x.toDouble()
 
         infix fun C(x: I): I {
             val index = list.size - 1
@@ -843,5 +958,6 @@ class MDSL {
             println("invoke B")
             return i[6]
         }
+
     }
 }

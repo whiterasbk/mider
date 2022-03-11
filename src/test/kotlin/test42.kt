@@ -3,20 +3,58 @@ import kotlin.math.*
 
 
 fun main(args: Array<String>) {
+    test2()
+
+
+}
+
+
+fun test2() {
     val mdsl = MDSL()
     var minimsTicks = 960
 //    minimsTicks = 839
     val clock: Byte = 18
 
     with(mdsl) {
-        timeSignature = 4 to 4
-        keySignature(F, major)
+//        timeSignature = 4 to 4
+//        keySignature(F, major)
+        program = MDSL.instrument.violin
         bpm = 120
-        A B C D D
+        keySignature(C, major)
+        val d by -D/2+2 into "d"
+        val ca by D into "ca"
+
+        d*4
 
 
+        val Am by A+B+C into "Am"
+        val c by C into "c"
+
+        E {
+             C..B under majorScale
+        }
+//
+//        D relative {
+//
+//        }
+
+
+        list.forEach { println(it) }
+
+//        (C to D) {
+//
+//        }
+
+
+
+
+//        A B C D D
+//
+//        C..E under diatonic
+//        D[4]
+//        !D + 1
 //        (C to A) {
-            G; E*2+1; E+1; G; D*2+1; D+1; G; C*2+1; C*2+1; C*2+1; D*2+1
+           // G; E*2+1; E+1; G; D*2+1; D+1; G; C*2+1; C*2+1; C*2+1; D*2+1
 
 //        }
     }
@@ -25,20 +63,25 @@ fun main(args: Array<String>) {
     midi.append {
         track {
             meta(MetaEventType.META_TEMPO, args = bpm(mdsl.bpm))
-            val sf = mdsl.keySignature.first
-//            if (mdsl.signatureKey.first >= 0) mdsl.signatureKey.first.toByte()
-            meta(MetaEventType.META_KEY_SIGNATURE, mdsl.keySignature.first.semitone.toByte(), mdsl.keySignature.second.toByte())
-            meta(MetaEventType.META_TIME_SIGNATURE, mdsl.timeSignature.first.toByte(), log2(mdsl.timeSignature.second.toDouble()).toInt().toByte(), clock, 8)
+
+            mdsl.keySignature?.let {
+                meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
+            }
+
+            mdsl.timeSignature?.let {
+                meta(MetaEventType.META_TIME_SIGNATURE, it.first.toByte(), log2(it.second.toDouble()).toInt().toByte(), clock, 8)
+            }
+
             meta(MetaEventType.META_END_OF_TRACK)
         }
 
         track {
-            message(EventType.program_change, mdsl.program.id)
+            messaged(EventType.program_change, mdsl.program.id.toByte())
 
             for (i in mdsl.list) {
                 val note = i.code
-                message(EventType.note_on, note, 0)
-                message(EventType.note_off, note, (minimsTicks * 2 * i.duration).toInt())
+                messageno(note, 0, i.velocity)
+                messagenf(note, (minimsTicks * 2 * i.duration).toInt(), i.velocity)
             }
 
             meta(MetaEventType.META_END_OF_TRACK)
@@ -49,6 +92,7 @@ fun main(args: Array<String>) {
 }
 
 fun a() {
+
     with(MDSL()) {
 
         keySignature(D, major)

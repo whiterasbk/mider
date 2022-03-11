@@ -48,6 +48,10 @@ class Message(val event: Event, val time: Int = 0) : IMessage {
             : this(Event(eventType, byteArrayOf(note, velocity), channel), time)
     constructor(eventType: EventType, data: ByteArray, time: Int = 0, channel: Byte = 0)
             : this(Event(eventType, data, channel), time)
+    constructor(eventType: EventType, time: Int = 0, vararg data: Byte)
+            : this(Event(eventType, args = data, 0), time)
+    constructor(eventType: EventType, vararg data: Byte)
+            : this(Event(eventType, args = data, 0), 0)
 
     override var deltaTimeArray: ByteArray
         get() = time.asvlByteArray()

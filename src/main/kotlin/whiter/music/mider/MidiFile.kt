@@ -14,6 +14,7 @@ interface HexData {
 class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, private val trackdiv: Int = 960) {
     private val trackChain = mutableListOf<Track>()
     private val buffer = ByteBuffer.allocate(102)
+    var debug = false
 
     fun append(track: Track): MidiFile {
         trackChain.add(track)
@@ -60,6 +61,5 @@ class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, privat
 
         fos.close()
         channel.close()
-        println(capacity)
     }
 }

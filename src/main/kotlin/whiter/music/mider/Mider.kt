@@ -38,7 +38,7 @@ class Mider {
 
     private fun initMainTrack() : Mider {
         main_track = Track().append {
-            message(program_change, byteArrayOf(0))
+            // message(program_change, byteArrayOf(0))
         }
         return this
     }
@@ -63,8 +63,8 @@ class Mider {
         val delta_time = (minimsTicks / 2 * time * 4 / duration).toInt()
         main_track.append {
             val note = current + ((add_pitch - pitch) * 12).toByte()
-            message(note_on, note, 0, velocity)
-            message(note_off, note, delta_time, velocity)
+            //message(note_on, note, 0, velocity)
+            // message(note_off, note, delta_time, velocity)
         }
     }
 

@@ -19,25 +19,25 @@ fun mid() {
         }
 
         track {
-            message(program_change, 0)
-            message(note_off, G4, 0)
-            message(note_on, G4, 480)
-            message(note_off, E5, 0)
-            message(note_on, E5, 480)
-            message(note_off, E5, 0)
-            message(note_on, E5, 480)
-
-            message(note_off, E5, 0)
-            message(note_on, E5, 120)
-
-            message(note_off, E5, 0)
-            message(note_on, E5, 120)
-
-            message(note_off, E5, 0)
-            message(note_on, E5, 120)
-
-            message(note_on, E5, 120)
-            message(note_off, E5, 0)
+//            message(program_change, 0)
+//            message(note_off, G4, 0)
+//            message(note_on, G4, 480)
+//            message(note_off, E5, 0)
+//            message(note_on, E5, 480)
+//            message(note_off, E5, 0)
+//            message(note_on, E5, 480)
+//
+//            message(note_off, E5, 0)
+//            message(note_on, E5, 120)
+//
+//            message(note_off, E5, 0)
+//            message(note_on, E5, 120)
+//
+//            message(note_off, E5, 0)
+//            message(note_on, E5, 120)
+//
+//            message(note_on, E5, 120)
+//            message(note_off, E5, 0)
 
 
 
