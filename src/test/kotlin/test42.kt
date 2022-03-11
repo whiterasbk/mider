@@ -21,11 +21,11 @@ fun test2() {
         program = MDSL.instrument.violin
         bpm = 120
         keySignature(C, major)
+
         val d by -D/2+2 into "d"
         val ca by D into "ca"
 
         d*4
-
 
         val Am by A+B+C into "Am"
         val c by C into "c"
@@ -33,6 +33,8 @@ fun test2() {
         E {
              C..B under majorScale
         }
+
+        println(A)
 //
 //        D relative {
 //

@@ -1,4 +1,4 @@
-import whiter.music.mider.Note
+
 import kotlin.reflect.KProperty
 
 fun main(args: Array<String>) {
@@ -141,43 +141,36 @@ class MDSL {
     val C: I 
         get() {
             push('C')
-            println("get C")
             return i[0]
         }
     val D: I
         get() {
             push('D')
-            println("get D")
             return i[1]
         }
     val E : I
         get() {
             push('E')
-            println("get E")
             return i[2]
         }
     val F : I
         get() {
             push('F')
-            println("get F")
             return i[3]
         }
     val G : I
         get() {
             push('G')
-            println("get G")
             return i[4]
         }
     val A : I
         get() {
             push('A')
-            println("get A")
             return i[5]
         }
     val B : I
         get() {
             push('B')
-            println("get B")
             return i[6]
         }
 
@@ -532,6 +525,17 @@ class MDSL {
                 else -> throw nsk
             } to s
         }
+
+        private fun getNoteBasicOffset(name: Char): Byte = when(name){
+            'C' -> 0
+            'D' -> 2
+            'E' -> 4
+            'F' -> 5
+            'G' -> 7
+            'A' -> 9
+            'B' -> 11
+            else -> throw Exception("no such note")
+        }
     }
 
     // key signature
@@ -560,36 +564,46 @@ class MDSL {
         var code: Byte = 0
             get() {
 
-                val relname = when(sfn) {
-                    SFNType.Sharp -> {
-                        if (name in "EB") {
-                            nextNoteName(name)
-                        } else {
-                            name + "S"
-                        }
-                    }
-                    SFNType.Flat -> {
-                        previousNoteName(name)
-                    }
-                    else -> name
-                }.toString()
-
-                return Note.valueOf("$relname${
-                    when (sfn){
-                        SFNType.Flat -> {
-                            if (relname !in "BE") 'S' else ""
-                        }
-                        else -> ""
-                    }
-                }${pitch - when(sfn) {
-                    SFNType.Sharp -> {
-                        if (name == 'B') -1 else 0
-                    }
-                    SFNType.Flat -> {
-                        if (name == 'C') 1 else 0
-                    }
+                val id = getNoteBasicOffset(name) + when(sfn) {
+                    SFNType.Sharp -> 1
+                    SFNType.Flat -> -1
                     else -> 0
-                }}").id
+                } + (pitch + 1) * 12
+
+                if (id < 0 || id > 128) throw Exception("no such note")
+
+                return id.toByte()
+
+//                val relname = when(sfn) {
+//                    SFNType.Sharp -> {
+//                        if (name in "EB") {
+//                            nextNoteName(name)
+//                        } else {
+//                            name + "S"
+//                        }
+//                    }
+//                    SFNType.Flat -> {
+//                        previousNoteName(name)
+//                    }
+//                    else -> name
+//                }.toString()
+//
+//                return Note.valueOf("$relname${
+//                    when (sfn){
+//                        SFNType.Flat -> {
+//                            if (relname !in "BE") 'S' else ""
+//                        }
+//                        else -> ""
+//                    }
+//                }${pitch - when(sfn) {
+//                    SFNType.Sharp -> {
+//                        if (name == 'B') -1 else 0
+//                    }
+//                    SFNType.Flat -> {
+//                        if (name == 'C') 1 else 0
+//                    }
+//                    else -> 0
+//                }}").id
             }
 
             set(value) {
@@ -754,16 +768,7 @@ class MDSL {
 
     inner class I(val id: Byte) {
 
-        constructor(n: Char) : this(when(n){
-            'C' -> 0
-            'D' -> 2
-            'E' -> 4
-            'F' -> 5
-            'G' -> 7
-            'A' -> 9
-            'B' -> 11
-            else -> throw Exception("no such note")
-        })
+        constructor(n: Char) : this(getNoteBasicOffset(n))
 
         init {
             // if (id !in byteArrayOf(0, 2, 4, 5, 7, 9, 11)); // do sth.?
@@ -816,9 +821,7 @@ class MDSL {
             return this[pitch, duration.toDouble()]
         }
 
-        override fun toString(): String {
-            return Note.from(id).toString()
-        }
+        override fun toString(): String = "大弦嘈嘈如急雨，小弦切切如私语。嘈嘈切切错杂弹，大珠小珠落玉盘。"
 
         operator fun not(): I {
             current.sfn = SFNType.Natural
@@ -871,13 +874,10 @@ class MDSL {
         operator fun plus(x: Byte) : I {
             val origin = current.pitch
             current.pitch = (x + origin).toByte()
-            println("$this plus $x")
             return this
         }
 
-        operator fun plus(x: I): chord {
-            return chord(last, current)
-        }
+        operator fun plus(x: I): chord = chord(last, current)
 
         operator fun plusAssign(x: Byte) {
             current += x
@@ -886,7 +886,6 @@ class MDSL {
         operator fun minus(x: Byte) : I {
             val origin = current.pitch
             current.pitch = (origin - x).toByte()
-            println("$this minus $x")
             return this
         }
 
@@ -896,7 +895,6 @@ class MDSL {
 
         operator fun times(x: Double) : I {
             current.duration = getRealDuration(x)
-            println("$this plus $x")
             return this
         }
 
@@ -913,49 +911,42 @@ class MDSL {
         infix fun C(x: I): I {
             val index = list.size - 1
             insert(index, 'C')
-            println("invoke C")
             return i[0]
         }
 
         infix fun D(x: I): I {
             val index = list.size - 1
             insert(index, 'D')
-            println("invoke D")
             return i[1]
         }
 
         infix fun E(x: I): I {
             val index = list.size - 1
             insert(index, 'E')
-            println("invoke E")
             return i[2]
         }
 
         infix fun F(x: I): I {
             val index = list.size - 1
             insert(index, 'F')
-            println("invoke F")
             return i[3]
         }
 
         infix fun G(x: I): I {
             val index = list.size - 1
             insert(index, 'G')
-            println("invoke G")
             return i[4]
         }
 
         infix fun A(x: I): I {
             val index = list.size - 1
             insert(index, 'A')
-            println("invoke A")
             return i[5]
         }
 
         infix fun B(x: I): I {
             val index = list.size - 1
             insert(index, 'B')
-            println("invoke B")
             return i[6]
         }
 
