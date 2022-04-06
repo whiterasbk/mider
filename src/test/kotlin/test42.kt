@@ -22,26 +22,102 @@ fun test2() {
         bpm = 120
         keySignature(C, major)
 
-        val d by -D/2+2 into "d"
-        val ca by D into "ca"
-
-        d*4
-
+//        val d by -D/2+2 into "d"
+//        val ca by D into "ca"
+//
+//        d*4
+//
         val Am by A+B+C into "Am"
-        val c by C into "c"
+        val Bm by A+D+C into "Bm"
 
-        E {
-             C..B under majorScale
-        }
+//        val c by C into "c"
 
-        println(A)
+
+//
+//        E {
+//             C..B under majorScale
+//        }
+
+//        val c = atMainKeySignature {
+//            C D E
+//        }
+//
+//        println(c)
+//
+//        D {
+////            D C D
+//            C {
+////                C; D; E
+//                val Fd by F triad majorChord into "Fd"
+//                Fd
+//            }
+//        }
+//
+//        Am and Bm
+//
+//        Bm; Am
+
+//        println(">>>"+entrustc)
+//
+//        val d = Am + Bm
+//////
+//////        println(d.note_list)
+//////
+//        val ab by d into "ab"
+//////
+//        val cc by ab + C into "cc"
+
+
+//        cc
+//
+//        E; D
+//
+//        val Cd by C+E+G into "Cd"
+//
+//        Cd / E
+
+//        A + B + C
+
+        val Cm by C+E+G into "Cm"
+        val V by Cm into "V"
+        V
+//        Cm.sus4
+//        V
+//
+//        Am; Cm
+
+
+//        Am + Bm
+//        Am
+
+
+
+
+
+
+
+
+
+
+//        A triad majorChord
+
+//
+//        Fd
+
+
+//        println(A)
 //
 //        D relative {
 //
 //        }
 
 
-        list.forEach { println(it) }
+        list.forEach(::println)
+
+//        println("========")
+//        Am.note_list.forEach(::println)
+//        println("========")
+//        Bm.note_list.forEach(::println)
 
 //        (C to D) {
 //
