@@ -130,11 +130,10 @@ class MDSL {
     // 减七和弦
     val decreasedSeventh = arrayOf(3, 3, 3)
 
-
-    var _pitch: Byte = 4
-    var _duration = 1.0 // 1.0为全音符
+    var pitch: Byte = 4
+    var duration = 1.0 // 1.0为全音符
     var defaultNoteDuration = 4 // 默认是四分音符
-    var _velocity: Byte = 100
+    var velocity: Byte = 100
     var program: instrument = instrument.piano
     var bpm = 80
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
@@ -147,7 +146,7 @@ class MDSL {
      */
     val O: rest get() {
         if (list.size == 0) throw Exception("rest note should not place at the beginning")
-        current.duration += getRealDuration(_duration)
+        current.duration += getRealDuration(duration)
         return __rest_instance
     }
     val C: I get() {
@@ -192,19 +191,19 @@ class MDSL {
     operator fun String.not() = parse(this)
 
     operator fun Int.invoke(block: MDSL.() -> Any) {
-        val __pitch = _pitch
-        _pitch = this.toByte()
+        val __pitch = pitch
+        pitch = this.toByte()
         !block
-        _pitch = __pitch
+        pitch = __pitch
     }
 
     // 设定任意时值
     operator fun Double.invoke(block: MDSL.() -> Any) {
         '1' {
-            val __duration = _duration
-            _duration = this@invoke
+            val __duration = duration
+            duration = this@invoke
             !block
-            _duration = __duration
+            duration = __duration
             end
         }
     }
@@ -290,10 +289,10 @@ class MDSL {
     fun def(block: MDSL.() -> Any): MDSL.() -> Any = block
 
     fun velocity(v: Byte, block: MDSL.() -> Any) {
-        val __velocity = _velocity
-        _velocity = v
+        val __velocity = velocity
+        velocity = v
         !block
-        _velocity = __velocity
+        velocity = __velocity
     }
 
     // 标记默认调号
@@ -334,20 +333,20 @@ class MDSL {
         str.trim().replace("\n", " ").replace(";", " ").replace("  ", " ").split(" ").forEach {
             val length = it.length
             val first_letter = it[0]
-            val iDuration = if (isChord) 0.0 else _duration
+            val iDuration = if (isChord) 0.0 else duration
 
             if (first_letter == 'O') {
                 // rest
                 if (list.size == 0) throw Exception("rest note should not place at the beginning")
 
                 if (length == 1) {
-                    current.duration += getRealDuration(_duration)
+                    current.duration += getRealDuration(duration)
                 } else if (it[1] == '*') {
                     val v = it.substring(2 until it.length).toDouble()
-                    current.duration += getRealDuration(_duration) * v
+                    current.duration += getRealDuration(duration) * v
                 } else if (it[1] == '/') {
                     val v = it.substring(2 until it.length).toDouble()
-                    current.duration += getRealDuration(_duration) * (1.0 / v)
+                    current.duration += getRealDuration(duration) * (1.0 / v)
                 } else throw Exception("parse failed")
             } else if (length == 1) {
                 push(it[0], duration = iDuration)
@@ -382,7 +381,7 @@ class MDSL {
                     if ('[' in withoutsnf) {
                         val args = withoutsnf.substring(1 until  withoutsnf.length).replace("[", "").replace("]", "").split(',')
                         if (args.size == 1) {
-                            push(noteName, args[0].toInt().toByte(), getRealDuration(_duration), snf)
+                            push(noteName, args[0].toInt().toByte(), getRealDuration(duration), snf)
                         } else if (args.size == 2) {
                             push(noteName, args[0].toInt().toByte(), getRealDuration(args[1].toDouble()), snf)
                         } else throw Exception("parse failed")
@@ -395,7 +394,7 @@ class MDSL {
                             (withoutsnf.split('+')[1].split('*')[0].split('/')[0]).toInt().toByte()
                             else if ('-' in withoutsnf) (-(withoutsnf.split('-')[1].split('*')[0].split('/')[0]).toInt()).toByte() else 0
 
-                        push(noteName, (_pitch + p).toByte(), d, snf)
+                        push(noteName, (pitch + p).toByte(), d, snf)
                     } else throw Exception("parse failed")
                 }
 
@@ -404,8 +403,8 @@ class MDSL {
         }
     }
 
-    private fun push(x: Char, pitch: Byte = _pitch, duration: Double = _duration, sfn: SFNType = SFNType.Self) {
-        list.add(note(x, pitch, getRealDuration(duration), _velocity, sfn))
+    private fun push(x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self) {
+        list.add(note(x, pitch, getRealDuration(duration), velocity, sfn))
     }
 
     private fun push(n: note) = list.add(n)
@@ -424,8 +423,8 @@ class MDSL {
         return d * (1.0 / defaultNoteDuration)
     }
 
-    private fun insert(index: Int, x: Char, pitch: Byte = _pitch, duration: Double = _duration, sfn: SFNType = SFNType.Self) {
-        list.add(index, note(x, pitch, getRealDuration(duration), _velocity, sfn))
+    private fun insert(index: Int, x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self) {
+        list.add(index, note(x, pitch, getRealDuration(duration), velocity, sfn))
     }
 
     private fun insert(index: Int, n: note) = list.add(index, n)
@@ -590,7 +589,7 @@ class MDSL {
         koto(108), fiddle(111), tinklebell(113)
     }
 
-    inner class note(var name: Char, var pitch: Byte = _pitch, var duration: Double = getRealDuration(_duration), var velocity: Byte = _velocity, var sfn: SFNType = SFNType.Self): Cloneable {
+    inner class note(var name: Char, var pitch: Byte = this@MDSL.pitch, var duration: Double = getRealDuration(this@MDSL.duration), var velocity: Byte = this.velocity, var sfn: SFNType = SFNType.Self): Cloneable {
 
         init {
             if (name !in "CDEFGAB") throw Exception("unsupport note: $name")
@@ -737,8 +736,8 @@ class MDSL {
 
     inner class rest {
         operator fun times(v: Double) {
-            current.duration -= getRealDuration(_duration)
-            current.duration += getRealDuration(_duration) * v
+            current.duration -= getRealDuration(duration)
+            current.duration += getRealDuration(duration) * v
         }
 
         operator fun times(v: Float) = this * v.toDouble()
@@ -940,7 +939,7 @@ class MDSL {
             keySignature = originKeySignature
         }
 
-        operator fun get(pitch: Byte, duration: Double = _duration) : I {
+        operator fun get(pitch: Byte, duration: Double = this@MDSL.duration) : I {
             if (pitch != 4.toByte()) {
                 current.pitch = pitch
             }
