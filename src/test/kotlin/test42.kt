@@ -29,7 +29,13 @@ fun test2() {
 //
         val Am by A+B+C into "Am"
         val Bm by A+D+C into "Bm"
+        val Cm by C+E+G into "Cm"
 
+
+
+//        val j by Cm.sus2[6]*5 into "j"
+//
+//        j
 //        val c by C into "c"
 
 
@@ -48,8 +54,42 @@ fun test2() {
 ////            D C D
 //            C {
 ////                C; D; E
-//                val Fd by F triad majorChord into "Fd"
+//                val Fd by C ninths add into "Fd"
 //                Fd
+//        val p by C.add9 + 1 into "p"
+//        p[0] += 4
+//
+//
+//
+//
+////        println("="+p[0]+=0)
+//
+//        D seventh majorChord
+//
+//        D
+
+
+
+
+
+        (C(major) to D(minor)) {
+//            Am; C; E; G; A
+
+            C..B under majorScale
+        }
+
+//        C..B under minorScale
+
+//        (C to D) {
+//            Bm
+//        }
+
+
+
+
+
+//        val a1 by D seventh decreasedSeventh into "a1"
+//        a1
 //            }
 //        }
 //
@@ -78,9 +118,9 @@ fun test2() {
 
 //        A + B + C
 
-        val Cm by C+E+G into "Cm"
-        val V by Cm into "V"
-        V
+//        val Cm by C+E+G into "Cm"
+//        val V by Cm into "V"
+//        V
 //        Cm.sus4
 //        V
 //

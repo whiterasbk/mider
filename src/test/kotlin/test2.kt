@@ -105,8 +105,8 @@ fun main(args: Array<String>) {
 class MDSL {
     val list = mutableListOf<note>()
     private val i = listOf(I(0), I(2), I(4), I(5), I(7), I(9), I(11))
-    /*private*/ val entrusti = mutableMapOf<String, note>()
-    /*private*/ val entrustc = mutableMapOf<String, MutableList<note>>()
+    private val entrusti = mutableMapOf<String, note>()
+    private val entrustc = mutableMapOf<String, MutableList<note>>()
     private val __rest_instance = rest()
     private val current: note get() = list[list.lastIndex]
     private val last: note get() = list[list.lastIndex - 1]
@@ -115,10 +115,20 @@ class MDSL {
     val majorScale = arrayOf(2, 2, 1, 2, 2, 2, 1)
     val minorScale = arrayOf(2, 1, 2, 2, 1, 2, 2)
 
-    val majorChord = arrayOf(4, 3)
-    val minorChord = arrayOf(3, 4)
+    // 大三和弦 大七和弦 大九和弦
+    val majorChord = arrayOf(4, 3, 4, 3)
+    // 小三和弦 小七和弦 小九和弦
+    val minorChord = arrayOf(3, 4, 3, 4)
+    // 属七和弦 属大九和弦
+    val dominant = arrayOf(4, 3, 3, 4)
+    // 属小九和弦
+    val dominantMinorNinth = arrayOf(4, 3, 3, 3)
+    // 增三和弦
     val augmentedChord = arrayOf(4, 4)
-    val diminiITdChord = arrayOf(3, 3)
+    // 减三和弦 半减七和弦
+    val diminiITdChord = arrayOf(3, 3, 4)
+    // 减七和弦
+    val decreasedSeventh = arrayOf(3, 3, 3)
 
 
     var _pitch: Byte = 4
@@ -167,6 +177,10 @@ class MDSL {
     val B : I get() {
         push('B')
         return i[6]
+    }
+    // temp
+    val T : I get() {
+        return i.random()
     }
 
     operator fun (MDSL.() -> Any).not(): Any {
@@ -232,39 +246,33 @@ class MDSL {
         (from to to) (block)
     }
 
+    // 转小调是转的同号小调
     @JvmName("invokeKsIntKsInt")
     operator fun Pair<Pair<Ks, Int>, Pair<Ks, Int>>.invoke(block: MDSL.() -> Any): Any {
         if (first == second) {
             return !block
         }
 
+        val root = first.first.code
+        val third = root + derive(2, if (first.second == major) majorScale else minorScale)
+        val sixth = root + derive(5, if (first.second == major) majorScale else minorScale)
+        val seventh = root + derive(6, if (first.second == major) majorScale else minorScale)
+
         val dp = second.first.code - first.first.code
         val inserted = getInsertedNotes(block)
         inserted.first.forEach {
             if (it.sfn != SFNType.Natural) {
-                it += dp.toByte()
+
+                val attach = if (it.code % 12 == third || it.code % 12 == sixth || it.code % 12 == seventh)
+                    if (first.second == major && second.second == minor) -1
+                    else if (first.second == minor && second.second == major) 1 else 0
+                else 0
+
+                it += (dp + attach).toByte()
             }
         }
 
         return inserted.second
-
-        // todo 小调
-//        signatureKeysList.add(first.first to first.second to (smark until emark))
-
-//        if (first.second == second.second) {
-//            // 小调转小调
-//            if (first.first == second.first) {
-//                // 相同调性, 只要降低367音即可
-//            }
-//        }
-//
-//        for (i in smark until emark) {
-//            if (list[i].sfn != SFNType.Natural) {
-//                list[i] += dp.toByte()
-//                // todo 是否要升高八度
-////                list[i].pitch = (list[i].pitch + if (dp > 0) 1 else 0).toByte()
-//            }
-//        }
     }
 
     // todo 使用大调还是小调
@@ -430,6 +438,16 @@ class MDSL {
 
 
     companion object {
+
+        // 推断距离根音音程
+        private fun derive(index: Int, scale: Array<Int>): Int {
+            var sum = 0
+            for (i in 0 until index) {
+                sum += scale[i]
+            }
+            return sum
+        }
+
         private fun nextNoteName(s: Char): Char = when(s) {
             'C' -> 'D'
             'D' -> 'E'
@@ -652,15 +670,36 @@ class MDSL {
             code = (code + v).toByte()
         }
 
+        operator fun plus(v: Byte): note {
+            this += v
+            return this
+        }
+
         operator fun minusAssign(v: Byte) {
             code = (code - v).toByte()
         }
 
         operator fun minus(v: note): Int = this.code - v.code
 
+        operator fun times(d: Double): note {
+            duration *= d
+            return this
+        }
+
+        operator fun times(f: Float) = this * f.toDouble()
+
+        operator fun times(i: Int) = this * i.toDouble()
+
+        operator fun div(d: Double) = this * (1.0 / d)
+
+        operator fun div(f: Float) = this * (1.0 / f)
+
+        operator fun div(i: Int) = this * (1.0 / i)
+
         override fun toString(): String = "[${sfn.symbol}$name${pitch}|${duration}|$velocity]"
 
         public override fun clone(): note = super.clone() as note
+
     }
 
     enum class SFNType(val symbol: Char) {
@@ -715,7 +754,7 @@ class MDSL {
 
     inner class chord(vararg notes: note) : Cloneable {
         constructor(vararg chords: chord) : this(*chords.map { it.note_list }.merge().toTypedArray())
-
+        constructor(c: chord, vararg ns: note) : this(*(c.note_list.clone() + ns).toTypedArray())
 
         val note_list = notes.toMutableList()
         private val rest_note_list: MutableList<note> get() {
@@ -724,7 +763,12 @@ class MDSL {
                 tempList += note_list[i]
             return tempList
         }
-        val main: note get() = note_list[0]
+
+        val main: note get() {
+            return getChordNotesFromList()[0]
+            // note_list[0]
+        }
+
         val second: note get() = note_list[1]
         val init_duration: Double = main.duration
 
@@ -736,18 +780,28 @@ class MDSL {
             //note_list[1].duration = getRealDuration(.0)
         }
 
-        operator fun get(pitch: Byte): chord {
-            if (pitch != 4.toByte()) {
-                main.pitch = pitch
-            }
-            return this
-        }
+        operator fun get(index: Int): note = getChordNotesFromList()[index]
 
         operator fun plus(v: I): chord {
             current.duration = getRealDuration(.0)
             note_list.add(current)
             return this
         }
+
+        operator fun plus(pitch: Int): chord {
+            if (pitch != 0) {
+                getChordNotesFromList().forEach {
+                    it.pitch = (it.pitch + pitch).toByte()
+                }
+
+                note_list.forEach {
+                    it.pitch = (it.pitch + pitch).toByte()
+                }
+            }
+            return this
+        }
+
+        operator fun minus(pitch: Byte): chord = this + -pitch
 
         operator fun plus(c: chord): chord {
             val c2index = list.size - c.note_list.size
@@ -757,6 +811,7 @@ class MDSL {
 
         operator fun times(v: Double): chord {
             main.duration = getRealDuration(v)
+            note_list[0].duration = getRealDuration(v)
             return this
         }
 
@@ -850,8 +905,14 @@ class MDSL {
 
         // todo 获得关系小调
         infix fun relative(block: MDSL.() -> Any) {
-
             !block
+        }
+
+        // 获取同名小调
+        infix fun minor(block: MDSL.() -> Any) {
+            atMainKeySignature {
+
+            }
         }
 
         infix fun into(id: String): I {
@@ -925,14 +986,47 @@ class MDSL {
                 val third = second.clone()
                 third += mode[1].toByte()
                 val chord = chord(current, second, third)
-                push(second)
-                push(third)
+                push(second.clone())
+                push(third.clone())
                 chord
             } as chord
         }
 
-        // todo 构建七和弦
-        // todo 构建九和弦
+        // 构建七和弦
+        infix fun seventh(mode: Array<Int>): chord {
+            val tr = T triad mode
+            return atMainKeySignature {
+                val fourth = tr.note_list[2].clone()
+                fourth += mode[2].toByte()
+                push(fourth.clone())
+                chord(tr, fourth)
+            } as chord
+        }
+
+        val addNinth: chord get() {
+            val tr = T triad majorChord
+            return atMainKeySignature {
+                val fourth = tr.note_list[0].clone()
+                fourth.duration = getRealDuration(.0)
+                fourth += 14.toByte()
+                push(fourth.clone())
+                chord(tr, fourth)
+            } as chord
+        }
+
+        val add9: chord get() = addNinth
+
+        // 构建九和弦
+        infix fun ninths(mode: Array<Int>): chord {
+            val tr = T seventh mode
+            return atMainKeySignature {
+                val fifth = tr.note_list[3].clone()
+                fifth += mode[3].toByte()
+                push(fifth.clone())
+                chord(tr, fifth)
+            } as chord
+        }
+
 
         operator fun rangeTo(x: I) : Iin {
             val lastIndex = list.lastIndex
