@@ -589,7 +589,7 @@ class MDSL {
         koto(108), fiddle(111), tinklebell(113)
     }
 
-    inner class note(var name: Char, var pitch: Byte = this@MDSL.pitch, var duration: Double = getRealDuration(this@MDSL.duration), var velocity: Byte = this.velocity, var sfn: SFNType = SFNType.Self): Cloneable {
+    inner class note(var name: Char, var pitch: Byte = this@MDSL.pitch, var duration: Double = getRealDuration(this@MDSL.duration), var velocity: Byte = this@MDSL.velocity, var sfn: SFNType = SFNType.Self): Cloneable {
 
         init {
             if (name !in "CDEFGAB") throw Exception("unsupport note: $name")
