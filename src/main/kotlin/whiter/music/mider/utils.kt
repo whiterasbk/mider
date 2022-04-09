@@ -86,6 +86,60 @@ fun bpm(ib: Int): ByteArray {
     return bpm2tempo(ib).asByteArray()
 }
 
+operator fun ByteArray.set(range: IntRange, bytes: ByteArray) {
+    var count = 0
+    for (i in range) {
+        this[i] = bytes[count++]
+    }
+}
+
+class ByteArrayWrap(private vararg val array: Byte) {
+    constructor(size: Int): this(*ByteArray(size))
+
+    private var mark: Int = 0
+    val size = array.size
+    val indices = array.indices
+    val lastIndex = array.lastIndex
+
+    fun reset() {
+        mark = 0
+    }
+
+    fun put(byte: Byte): ByteArrayWrap {
+        array[mark++] = byte
+        return this
+    }
+
+    fun put(bytes: ByteArray): ByteArrayWrap {
+        for (i in bytes) {
+            put(i)
+        }
+        return this
+    }
+
+    operator fun plusAssign(byte: Byte) {
+        put(byte)
+    }
+
+    operator fun plusAssign(bytes: ByteArray) {
+        put(bytes)
+    }
+
+    operator fun not() = array
+
+    operator fun get(index: Int) = array[index]
+
+    operator fun set(index: Int, value: Byte) {
+        array[index] = value
+    }
+
+    operator fun set(range: IntRange, bytes: ByteArray) {
+        array[range] = bytes
+    }
+
+    override fun toString(): String = array.toList().toString()
+}
+
 
 fun temp() {
     /*

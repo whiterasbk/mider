@@ -1,5 +1,7 @@
 import whiter.music.mider.*
 import whiter.music.mider.dsl.apply
+import java.math.BigDecimal
+import java.math.BigInteger
 import kotlin.math.*
 
 fun main(args: Array<String>) {
@@ -10,9 +12,65 @@ fun main(args: Array<String>) {
         val d by D[5] into "d"
         val c by C[5] into "c"
 
-        G; e; d; c; G; G; G;
-        G; e; d; c; A; A; A;
+//        G; e; d; c; G; G; G;
+//        G; e; d; c; A; A; A;
+//
+//        C..B
+//
+//        val a: Int = 455559536
+//        println(a)
+
+        defaultNoteDuration = 4
+
+//        !123956979
+        val pi = BigDecimal("-3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679")
+
+        -pi
+
+
+        (5 to .3) {
+
+        }
+
+        (D to A) {
+
+        }
+
+
+
+        //~BigInteger("1")
+
+        list.forEach(::println)
+
+//        !PI
+//        BigInteger("33333333333333333333333333333333333333333")
+//
+//        a()
+
     }
+}
+
+
+fun a() {
+    var sum = 2.0
+    var n = 1
+    var m = 3
+    var t = 2.0
+    var z = .00000000000000000000000000000000000001
+
+    while(t > z){
+
+        t = t * n / m
+
+        sum += t
+
+        n++
+
+        m +=2
+    }
+
+    println(sum)
+
 }
 
 

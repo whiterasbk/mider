@@ -1,6 +1,10 @@
 package whiter.music.mider
 
 import java.nio.ByteBuffer
+import java.nio.channels.ByteChannel
+import java.nio.channels.Channel
+import java.nio.channels.FileChannel
+import java.nio.channels.WritableByteChannel
 
 
 /*
@@ -36,7 +40,8 @@ time	any integer or float
 //    val pitch: Int = 0,
 
 interface IMessage: HasByteSize, HexData {
-    var deltaTimeArray: ByteArray
+    val deltaTimeArray: ByteArray
+    fun passDataToChannel(channel: WritableByteChannel, buffer: ByteBuffer)
 }
 
 class Message(val event: Event, val time: Int = 0) : IMessage {
@@ -53,9 +58,7 @@ class Message(val event: Event, val time: Int = 0) : IMessage {
     constructor(eventType: EventType, vararg data: Byte)
             : this(Event(eventType, args = data, 0), 0)
 
-    override var deltaTimeArray: ByteArray
-        get() = time.asvlByteArray()
-        set(value) {}
+    override val deltaTimeArray: ByteArray get() = time.asvlByteArray()
 
     override fun getOccupiedBytes() = event.getOccupiedBytes() + deltaTimeArray.size
 
@@ -70,6 +73,15 @@ class Message(val event: Event, val time: Int = 0) : IMessage {
         return buffer
     }
 
+    override fun passDataToChannel(channel: WritableByteChannel, buffer: ByteBuffer) {
+        channel.write(with(buffer) {
+            clear()
+            put(deltaTimeArray)
+            put(event.generateData())
+            flip()
+        })
+    }
+
     override fun toString(): String {
         return "[event: $event time: $time]"
     }
@@ -82,9 +94,7 @@ class MetaMessage(val metaEvent: MetaEvent, var time: Int = 0, val status: Byte 
     constructor(metaEventType: MetaEventType, vararg args: Byte = HexConst.emptyData)
             : this(MetaEvent(metaEventType, args))
 
-    override var deltaTimeArray: ByteArray
-        get() = time.asvlByteArray()
-        set(value) {}
+    override val deltaTimeArray: ByteArray get() = time.asvlByteArray()
 
     override fun getHexDataAsByteBuffer(): ByteBuffer {
         val occupied = getOccupiedBytes()
@@ -97,6 +107,16 @@ class MetaMessage(val metaEvent: MetaEvent, var time: Int = 0, val status: Byte 
         }
 
         return buffer
+    }
+
+    override fun passDataToChannel(channel: WritableByteChannel, buffer: ByteBuffer) {
+        channel.write(with(buffer) {
+            clear()
+            put(deltaTimeArray)
+            put(status)
+            put(metaEvent.generateData())
+            flip()
+        })
     }
 
     override fun toString(): String {

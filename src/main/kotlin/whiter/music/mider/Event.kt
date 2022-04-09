@@ -1,10 +1,11 @@
 package whiter.music.mider
 
 import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import kotlin.experimental.or
 
 interface IEvent : HasByteSize, HexData {
-
+    fun generateData(): ByteArray
 }
 
 enum class EventType(val operateCode: Byte) {
@@ -18,6 +19,13 @@ class Event(val type: EventType, val args: ByteArray, val track: Byte = 0) : IEv
     constructor(type: EventType, arg: Byte, track: Byte = 0) : this(type, byteArrayOf(arg), track)
     constructor(type: EventType, track: Byte = 0) : this(type, 0, track)
 
+    override fun generateData(): ByteArray {
+        val bytes = ByteArrayWrap(getOccupiedBytes())
+        bytes += type.operateCode or track
+        bytes += args
+        return !bytes
+    }
+
     override fun getOccupiedBytes() = 1 + args.size
 
     override fun getHexDataAsByteBuffer(): ByteBuffer {
@@ -29,7 +37,6 @@ class Event(val type: EventType, val args: ByteArray, val track: Byte = 0) : IEv
             if (args.isNotEmpty()) put(args)
             flip()
         }
-
         return buffer
     }
 
@@ -59,6 +66,14 @@ class MetaEvent(val type: MetaEventType = MetaEventType.META_END_OF_TRACK, val d
             flip()
         }
         return buffer
+    }
+
+    override fun generateData(): ByteArray {
+        val bytes = ByteArrayWrap(getOccupiedBytes())
+        bytes += type.operateCode
+        bytes += arg_length
+        bytes += data
+        return !bytes
     }
 
     override fun toString(): String {

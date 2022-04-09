@@ -4,10 +4,17 @@ import whiter.music.mider.EventType
 import whiter.music.mider.MetaEventType
 import whiter.music.mider.MidiFile
 import whiter.music.mider.bpm
+import java.math.BigDecimal
+import java.math.BigInteger
 import kotlin.math.log2
 import kotlin.math.*
 import kotlin.reflect.KProperty
 
+/**
+ * 使用 mider dsl 产生音符并输出到指定文件
+ * @param path 要保存到的路径
+ * @param block 音符块
+ */
 fun apply(path: String, block: MiderDSL.() -> Any) {
     val mdsl = MiderDSL()
     val minimsTicks = 960
@@ -142,7 +149,10 @@ class MiderDSL {
      */
     operator fun (MiderDSL.() -> Any).not(): Any {
         val res = this()
-        if (res is String) parse(res)
+        if (res is String) !res
+        else if (res is Number) !res
+        else if (res is BigInteger) -res
+        else if (res is BigDecimal) -res
         return res
     }
 
@@ -152,14 +162,123 @@ class MiderDSL {
      */
     operator fun String.not() = parse(this)
 
-    operator fun Int.invoke(block: MiderDSL.() -> Any) {
-        val __pitch = pitch
-        pitch = this.toByte()
-        !block
-        pitch = __pitch
+    /**
+     * 将数字映射为音阶, 具体规则如下
+     * 1~7对应c~b, 称为有效音阶; 0表示休止符号, 8表示升, 9表示降, ‘.’表示附点, 这四个符号称为操作符
+     * 在8之后, 一个8表示升一个八度, 一个9表示升一个半音, 一个0表示增加一倍时长, 一个.表示增加为原来的1.5倍
+     * 在9之后, 一个8表示降一个八度, 一个9表示降一个半音, 一个0表示降二分之一时长, 一个.表示当前时长除以1.5
+     * 0在8和9之前, 表示增加一个当前时长
+     * 有效音阶之后, 出现-则表示将当前音符时值设置为0
+     * 如果单独一个8或9夹在有效音阶之间, 相当于88或者99
+     * @receiver [Number] 要转换的数字
+     */
+    operator fun Number.not() = parseInt(toString())
+
+    operator fun BigInteger.unaryMinus() = parseInt(toString())
+
+    operator fun BigDecimal.unaryMinus() = parseInt(toString())
+
+    fun parseInt(str: String) {
+        var upFlag: Boolean? = null
+        var symbolCount = 0
+
+        (str + "1").forEach {
+            when (it) {
+                '1', '2', '3', '4', '5', '6', '7' -> {
+                    C
+                    current + derive(it.digitToInt() - 1, majorScale).toByte()
+                    if (symbolCount == 1) {
+                        if (upFlag == true) last + 12 else if (upFlag == false) last - 1
+                    }
+                    symbolCount = 0
+                    upFlag = null
+                }
+
+                '0' -> {
+                    if (list.size == 0) C
+
+                    if (upFlag == null) {
+                        current.duration += getRealDuration(duration)
+                    } else if (upFlag == true) {
+                        current.duration *= getRealDuration(duration)
+                    } else {
+                        current.duration /= getRealDuration(duration)
+                        if (current.duration < 0) current.duration = .0
+                    }
+                }
+
+                '8' -> {
+                    symbolCount ++
+                    if (list.size == 0) C
+                    if (upFlag == null) {
+                        upFlag = true
+                    } else {
+                        if (upFlag == true) {
+                            current + 12
+                        } else if (upFlag == false) {
+                            current - 12
+                        }
+                    }
+                }
+
+                '9' -> {
+                    symbolCount ++
+                    if (list.size == 0) C
+                    if (upFlag == null) {
+                        upFlag = false
+                    } else {
+                        if (upFlag == true) {
+                            current + 1
+                        } else if (upFlag == false) {
+                            current - 1
+                        }
+                    }
+                }
+
+                '.' -> {
+                    if (list.size == 0) C
+                    if (upFlag == null || upFlag == true) current * 1.5 else current / 1.5
+                }
+
+                '-' -> {
+                    if (list.size == 0) C
+                    current.duration = getRealDuration(.0)
+                }
+            }
+        }
+
+        pop()
     }
 
-    // 设定任意时值
+    /**
+     * 在作用范围内使用给定音高
+     * 用法:
+     * ```kotlin
+     * int {
+     *  C..B
+     * }
+     * ```
+     * @receiver 指定音高
+     * @param block 音符块
+     */
+    operator fun Int.invoke(block: MiderDSL.() -> Any) {
+        val _pitch = pitch
+        pitch = this.toByte()
+        !block
+        pitch = _pitch
+    }
+
+    /**
+     * 在作用范围内设定任意时值
+     * 用法:
+     * ```kotlin
+     * double {
+     *  C..B
+     * }
+     * ```
+     * @receiver 指定时值
+     * @param block 音符块
+     */
     operator fun Double.invoke(block: MiderDSL.() -> Any) {
         '1' {
             val __duration = duration
@@ -170,7 +289,17 @@ class MiderDSL {
         }
     }
 
-    // 设置默认音符时值, 这样可以避免出现小数（
+    /**
+     * 在作用范围内设定音符时值, 比如'8'是在8分音符下; 之所以有这个函数是因为可以避免出现小数
+     * 用法:
+     * ```kotlin
+     * char {
+     *  C..B
+     * }
+     * ```
+     * @receiver [Char] 指定音符时值
+     * @param block 音符块
+     */
     operator fun Char.invoke(block: MiderDSL.() -> Any) {
         if (this !in "123456789") throw Exception("can not set default note duration to $this, it should in 1-9")
         val _dnd = defaultNoteDuration
@@ -179,7 +308,17 @@ class MiderDSL {
         defaultNoteDuration = _dnd
     }
 
-    // 设定音高和任意时值
+    /**
+     * 在作用范围内设定音符音高和时值
+     * 用法:
+     * ```kotlin
+     * (int to double) {
+     *  C..B
+     * }
+     * ```
+     * @receiver [Pair] 指定音符音高和时值的配对时值
+     * @param block 音符块
+     */
     operator fun Pair<Int, Double>.invoke(block: MiderDSL.() -> Any) {
         this.first {
             this@invoke.second {
@@ -190,7 +329,17 @@ class MiderDSL {
         }
     }
 
-    // 其实只是想避免出现小数（
+    /**
+     * 在作用范围内设定音符音高和时值; 其实只是想避免出现小数(
+     * 用法:
+     * ```kotlin
+     * (int to char) {
+     *  C..B
+     * }
+     * ```
+     * @receiver [Pair] 指定音符音高和时值的配对时值
+     * @param block 音符块
+     */
     @JvmName("invokeIntChar")
     operator fun Pair<Int, Char>.invoke(block: MiderDSL.() -> Any) {
         this.first {
@@ -200,6 +349,17 @@ class MiderDSL {
         }
     }
 
+    /**
+     * 将作用范围内的音符转调(只进行大调之间的转换)
+     * 用法:
+     * ```kotlin
+     * (Note to Note) {
+     *  C..B
+     * }
+     * ```
+     * @receiver [Pair] 第一个[I]是作用范围内的调; 第二个[I]是要转去的调
+     * @param block 音符块
+     */
     @JvmName("invokeII")
     operator fun Pair<I, I>.invoke(block: MiderDSL.() -> Any) {
         val to = first(major)
@@ -207,7 +367,17 @@ class MiderDSL {
         (from to to) (block)
     }
 
-    // 转小调是转的同号小调
+    /**
+     * 将作用范围内的音符转调, 可以支持大调, 小调的互转; 转成的小调是大调的同名小调
+     * 用法:
+     * ```kotlin
+     * (Note(mode) to Note(mode)) {
+     *  C..B
+     * }
+     * ```
+     * @receiver [Pair] 第一个[Pair]的[I]是作用范围内的调号, [Int]是大调还是小调; 第二个[Pair]同理
+     * @param block 音符块
+     */
     @JvmName("invokeKsIntKsInt")
     operator fun Pair<Pair<Ks, Int>, Pair<Ks, Int>>.invoke(block: MiderDSL.() -> Any): Any {
         if (first == second) {
@@ -243,11 +413,35 @@ class MiderDSL {
         }
     }
 
-    fun repeat(times: Int, block: MiderDSL.() -> Any) {
+    /**
+     * 将作用范围内重复音符
+     * 用法:
+     * ```kotlin
+     * repeat(2) {
+     *  C..B
+     * }
+     * ```
+     * @param times 重复次数, 默认为2
+     * @param block 要重复的音符块
+     */
+    fun repeat(times: Int = 2, block: MiderDSL.() -> Any) {
         if (times <= 0) return
         for (i in 0 until times) !block
     }
 
+    /**
+     * 将作用范围内的音符包装为一个匿名函数; (多此一举了感觉是
+     * 用法:
+     * ```kotlin
+     * val block = def {
+     *  C..B
+     * }
+     *
+     * block()
+     * ```
+     * @param block 音符块
+     * @return 包含音符块的匿名函数
+     */
     fun def(block: MiderDSL.() -> Any): MiderDSL.() -> Any = block
 
     fun velocity(v: Byte, block: MiderDSL.() -> Any) {
@@ -257,12 +451,20 @@ class MiderDSL {
         velocity = _velocity
     }
 
-    // 标记默认调号
+    /**
+     * 标记默认调号
+     * @param v 指定的调号
+     * @param s 大调还是小调, 可选值有major和minor
+     */
     fun keySignature(v: I, s: Int) {
         keySignature = getKeySignatureFromN(current, s)
         pop()
     }
 
+    /**
+     * 设置keySignature以后在keySignature下演奏音符, 默认为C大调
+     * @param block 音符块
+     */
     fun atMainKeySignature(block: MiderDSL.() -> Any): Any {
         return keySignature?.let {
             if (keySignature!!.first == Ks.C && keySignature!!.second == major)
@@ -274,7 +476,11 @@ class MiderDSL {
         }
     }
 
-    // 获取block执行期间插入的音符
+    /**
+     * 获取block执行期间插入的音符
+     * @param block 音符块
+     * @return [Pair].first: [List] 获取插入的音符块
+     */
     private fun getInsertedNotes(block: MiderDSL.() -> Any): Pair<List<note>, Any> {
         val res = mutableListOf<note>()
 
@@ -293,8 +499,11 @@ class MiderDSL {
 
     /**
      * 解析字符串为音符
+     * 规则: 大体上与代码行间的规则一致
+     * @param str 要解析的字符串
+     * @param isChord 是否为和弦, 是递归参数, 不要使用默认值之外的值
      */
-    private fun parse(str: String, isChord: Boolean = false) {
+    fun parse(str: String, isChord: Boolean = false) {
         str.trim().replace("\n", " ").replace(";", " ").replace("  ", " ").split(" ").forEach {
             val length = it.length
             val first_letter = it[0]
@@ -435,30 +644,6 @@ class MiderDSL {
         }
 
         private fun getKeySignatureFromN(n: note, s: Int): Pair<Ks, Int> {
-//            val sf = when(n.name) {
-//                'C' -> {
-//                    if (n.sfn == SFNType.Sharp) 7 else 0
-//                }
-//                'D' -> {
-//                    if (n.sfn == SFNType.Flat) -5 else 2
-//                }
-//                'E' -> {
-//                    if (n.sfn == SFNType.Flat) -3 else 4
-//                }
-//                'F' -> {
-//                    if (n.sfn == SFNType.Sharp) 6 else -1
-//                }
-//                'G' -> {
-//                    if (n.sfn == SFNType.Flat) -6 else 1
-//                }
-//                'A' -> {
-//                    if (n.sfn == SFNType.Flat) -4 else 3
-//                }
-//                'B' -> {
-//                    if (n.sfn == SFNType.Flat) -2 else 5
-//                }
-//                else -> throw Exception("no such signature key")
-//            }
             val nsk = Exception("no such signature key")
             return when(n.name) {
                 'C' -> {
@@ -573,37 +758,6 @@ class MiderDSL {
                 if (id < 0 || id > 128) throw Exception("no such note")
 
                 return id.toByte()
-
-//                val relname = when(sfn) {
-//                    SFNType.Sharp -> {
-//                        if (name in "EB") {
-//                            nextNoteName(name)
-//                        } else {
-//                            name + "S"
-//                        }
-//                    }
-//                    SFNType.Flat -> {
-//                        previousNoteName(name)
-//                    }
-//                    else -> name
-//                }.toString()
-//
-//                return Note.valueOf("$relname${
-//                    when (sfn){
-//                        SFNType.Flat -> {
-//                            if (relname !in "BE") 'S' else ""
-//                        }
-//                        else -> ""
-//                    }
-//                }${pitch - when(sfn) {
-//                    SFNType.Sharp -> {
-//                        if (name == 'B') -1 else 0
-//                    }
-//                    SFNType.Flat -> {
-//                        if (name == 'C') 1 else 0
-//                    }
-//                    else -> 0
-//                }}").id
             }
 
             set(value) {
@@ -630,8 +784,12 @@ class MiderDSL {
                 field = value
             }
 
+        operator fun minusAssign(v: Byte) {
+            code = abs((code - v) % 128).toByte()
+        }
+
         operator fun plusAssign(v: Byte) {
-            code = (code + v).toByte()
+            code = ((code + v) % 128).toByte()
         }
 
         operator fun plus(v: Byte): note {
@@ -639,8 +797,9 @@ class MiderDSL {
             return this
         }
 
-        operator fun minusAssign(v: Byte) {
-            code = (code - v).toByte()
+        operator fun minus(v: Byte): note {
+            this -= v
+            return this
         }
 
         operator fun minus(v: note): Int = this.code - v.code
@@ -884,6 +1043,8 @@ class MiderDSL {
             pop()
             return this
         }
+
+        // inline operator fun rem(name: String) = this into name
 
         operator fun invoke(mf: Int): Pair<Ks, Int> {
             val res = getKeySignatureFromN(current, mf)

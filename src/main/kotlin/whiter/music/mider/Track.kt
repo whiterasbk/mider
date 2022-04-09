@@ -1,27 +1,16 @@
 package whiter.music.mider
 
 import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
+import java.nio.channels.WritableByteChannel
+import kotlin.reflect.KClass
 
 class Track {
     val msgchain = mutableListOf<IMessage>()
-    val debug = false
 
-    val seclen: ByteArray
-        get() {
-            var sum = 0
-            for (i in msgchain) {
-                sum += i.getOccupiedBytes()
-            }
-            return sum.as4lByteArray()
-        }
+    val seclen: ByteArray get() = msgchain.sumOf { it.getOccupiedBytes() }.as4lByteArray()
 
     fun append(msg: IMessage): Track {
-        if (debug) println(msg)
-
+        // todo debug
         msgchain.add(msg)
         return this
     }
@@ -120,20 +109,20 @@ class Track {
 //        }
 //    }
 
-    fun outputHead(channels: FileChannel) {
-        val occupied = 8
-        val headerBuffer = ByteBuffer.allocate(occupied)
-        with(headerBuffer) {
+    val headOccupied: Int = 8
+
+    fun writeHead(channels: WritableByteChannel, buffer: ByteBuffer) {
+        channels.write(with(buffer) {
+            clear()
             put(HexConst.Mtrk)
             put(seclen)
             flip()
-        }
-        channels.write(headerBuffer)
+        })
     }
 
-    fun outputMessage(channels: FileChannel) {
-        for (msg in msgchain) {
-            channels.write(msg.getHexDataAsByteBuffer())
-        }
+    val messageOccupied: Int get() = msgchain.sumOf { it.getOccupiedBytes() }
+
+    fun writeMessage(channels: WritableByteChannel, buffer: ByteBuffer) {
+        msgchain.forEach { it.passDataToChannel(channels, buffer) }
     }
 }

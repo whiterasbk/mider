@@ -2,18 +2,21 @@ package whiter.music.mider
 
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
+import java.nio.channels.Channel
+import java.nio.channels.WritableByteChannel
 
 interface HasByteSize {
     fun getOccupiedBytes(): Int
 }
 
 interface HexData {
+    @Deprecated("use passDataToFileChannel")
     fun getHexDataAsByteBuffer(): ByteBuffer
 }
 
-class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, private val trackdiv: Int = 960) {
+class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, private val trackdiv: Int = 960, bufferSize: Int = 100 * 1024, debugOutput: Boolean = false) {
     private val trackChain = mutableListOf<Track>()
-    private val buffer = ByteBuffer.allocate(102)
+    private val buffer = ByteBuffer.allocate(bufferSize)
     var debug = false
 
     fun append(track: Track): MidiFile {
@@ -29,37 +32,34 @@ class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, privat
     fun track(block: Track.() -> Unit): Track {
         val t = Track()
         t.append(block)
-        this.append(t)
+        append(t)
         return t
     }
 
-    fun data(): ByteBuffer {
-        TODO("")
-    }
-
-    fun save(fileName: String) {
-        val fos = FileOutputStream(fileName)
-        val channel = fos.channel
+    fun channel(channel: WritableByteChannel) {
         val seclen = 6
         val capacity = 4 + 4 + seclen
-        val header = ByteBuffer.allocate(capacity)
-        with(header) {
+        channel.write(with(buffer) {
+            clear()
             put(HexConst.Mthd)
             put(seclen.as4lByteArray())
             put(format.ordinal.as2lByteArray())
             put(trackChain.size.as2lByteArray())
             put(trackdiv.as2lByteArray())
             flip()
+        })
+
+        trackChain.forEach {
+            it.writeHead(channel, buffer)
+            it.writeMessage(channel, buffer)
         }
 
-        channel.write(header)
-
-        for (i in trackChain) {
-            i.outputHead(channel)
-            i.outputMessage(channel)
-        }
-
-        fos.close()
         channel.close()
+    }
+
+    fun save(fileName: String) {
+        val fos = FileOutputStream(fileName)
+        channel(fos.channel)
+        fos.close()
     }
 }
