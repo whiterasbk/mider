@@ -2,7 +2,6 @@ package whiter.music.mider
 
 import java.nio.ByteBuffer
 import java.nio.channels.WritableByteChannel
-import kotlin.reflect.KClass
 
 class Track {
     val msgchain = mutableListOf<IMessage>()
@@ -11,8 +10,14 @@ class Track {
 
     fun append(msg: IMessage): Track {
         // todo debug
+//        println(msg)
         msgchain.add(msg)
         return this
+    }
+
+    fun insertPenultimate(msg: IMessage) {
+//        println(msg)
+        msgchain.add(msgchain.lastIndex, msg)
     }
 
     inline fun append(block: Track.() -> Unit): Track {
@@ -30,6 +35,14 @@ class Track {
 
     fun meta(metaEventType: MetaEventType, vararg args: Byte = HexConst.emptyData) {
         append(MetaMessage(metaEventType, args = args))
+    }
+
+    fun end() {
+        meta(MetaEventType.META_END_OF_TRACK)
+    }
+
+    fun tempo(bpm: Int) {
+        meta(MetaEventType.META_TEMPO, *bpm(bpm))
     }
 
 
@@ -62,6 +75,10 @@ class Track {
         append(Message(event, time))
     }
 
+    fun messagePenultimate(event: Event, time: Int = 0) {
+        insertPenultimate(Message(event, time))
+    }
+
     fun message(event: EventType, time: Int = 0, channel: Byte = 0, vararg data: Byte) {
         message(Event(event, args = data, channel), time)
     }
@@ -70,13 +87,57 @@ class Track {
         message(Event(eventType, args = data, 0), 0)
     }
 
-    fun messageno(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun changeProgram(program: Byte) {
+        message(Event(EventType.program_change, byteArrayOf(program), 0), 0)
+    }
+
+    fun noteOn(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         message(Event(EventType.note_on, byteArrayOf(note, velocity), channel), time)
     }
 
-    fun messagenf(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun noteOff(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         message(Event(EventType.note_off, byteArrayOf(note, velocity), channel), time)
     }
+
+    fun noteOn(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        noteOn(note.id, time, velocity, channel)
+    }
+
+    fun noteOff(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        noteOff(note.id, time, velocity, channel)
+    }
+
+
+
+    fun note(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        noteOn(note, time, velocity, channel)
+    }
+
+    fun note(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        note(note.id, time, velocity, channel)
+    }
+
+
+
+
+
+
+    fun noteOnPenultimate(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        messagePenultimate(Event(EventType.note_on, byteArrayOf(note, velocity), channel), time)
+    }
+
+    fun noteOffPenultimate(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        messagePenultimate(Event(EventType.note_off, byteArrayOf(note, velocity), channel), time)
+    }
+
+    fun noteOnPenultimate(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        noteOnPenultimate(note.id, time, velocity, channel)
+    }
+
+    fun noteOffPenultimate(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+        noteOffPenultimate(note.id, time, velocity, channel)
+    }
+
 
 
 //

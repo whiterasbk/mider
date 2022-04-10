@@ -1,5 +1,6 @@
 package whiter.music.mider
 
+import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.channels.Channel
@@ -58,8 +59,12 @@ class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, privat
     }
 
     fun save(fileName: String) {
-        val fos = FileOutputStream(fileName)
+        val file = File(fileName)
+        val fos = FileOutputStream(file)
+
         channel(fos.channel)
         fos.close()
+
+        file.setLastModified(System.currentTimeMillis())
     }
 }

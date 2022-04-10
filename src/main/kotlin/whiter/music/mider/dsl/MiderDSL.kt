@@ -1,9 +1,8 @@
 package whiter.music.mider.dsl
 
-import whiter.music.mider.EventType
 import whiter.music.mider.MetaEventType
 import whiter.music.mider.MidiFile
-import whiter.music.mider.bpm
+import whiter.music.mider.Track
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.math.log2
@@ -23,7 +22,8 @@ fun apply(path: String, block: MiderDSL.() -> Any) {
     val midi = MidiFile()
     midi.append {
         track {
-            meta(MetaEventType.META_TEMPO, args = bpm(mdsl.bpm))
+//            meta(MetaEventType.META_TEMPO, args = bpm(mdsl.bpm))
+            tempo(mdsl.bpm)
 
             mdsl.keySignature?.let {
                 meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
@@ -33,26 +33,98 @@ fun apply(path: String, block: MiderDSL.() -> Any) {
                 meta(MetaEventType.META_TIME_SIGNATURE, it.first.toByte(), log2(it.second.toDouble()).toInt().toByte(), clock, 8)
             }
 
-            meta(MetaEventType.META_END_OF_TRACK)
+            end()
+
+//            meta(MetaEventType.META_END_OF_TRACK)
         }
 
         track {
-            messaged(EventType.program_change, mdsl.program.id.toByte())
+            changeProgram(mdsl.program.id.toByte())
 
-            for (i in mdsl.list) {
-                val note = i.code
-                messageno(note, 0, i.velocity)
-                messagenf(note, (minimsTicks * 2 * i.duration).toInt(), i.velocity)
+            parseSound(minimsTicks, mdsl.adjustedList())
+
+//            for (sound in mdsl.adjustedList()) {
+//                if (sound is MiderDSL.InListNote) {
+//                    noteOn(sound.code, 0, sound.velocity)
+//                    noteOff(sound.code, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity)
+//                } else if (sound is MiderDSL.InListChord) {
+//                    sound.code.forEachIndexed { index, it ->
+//                        noteOn(it, 0, sound.velocity[index])
+//                    }
+//                    val off = sound.code.toMutableList()
+//                    val root = off.removeFirst()
+//
+//                    noteOff(root, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity[0])
+//
+//                    off.forEachIndexed { index, it ->
+//                        noteOff(it, 0, sound.velocity[index])
+//                    }
+//                }
+//            }
+
+
+
+            end()
+        }
+
+        if (mdsl.otherTracks.isNotEmpty()) {
+            mdsl.otherTracks.forEach {
+                track {
+                    changeProgram(it.program.id.toByte())
+                    parseSound(minimsTicks, it.adjustedList())
+                    end()
+                }
             }
-
-            meta(MetaEventType.META_END_OF_TRACK)
         }
     }
     midi.save(path)
 }
 
+private fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) {
+    var previousDuration: Double? = null
+    for (sound in list) {
+        if (sound is MiderDSL.InListNote) {
+            if (previousDuration != null) {
+                noteOn(sound.code, (minimsTicks * 2 * previousDuration).toInt(), sound.velocity)
+                previousDuration = null
+            } else {
+                noteOn(sound.code, 0, sound.velocity)
+            }
+            noteOff(sound.code, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity)
+        } else if (sound is MiderDSL.InListChord) {
+            sound.code.forEachIndexed { index, it ->
+                noteOn(it, 0, sound.velocity[index])
+            }
+            val off = sound.code.toMutableList()
+            val root = off.removeFirst()
+
+            noteOff(root, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity[0])
+
+            off.forEachIndexed { index, it ->
+                noteOff(it, 0, sound.velocity[index])
+            }
+        } else if (sound is MiderDSL.InListRestNote) {
+            previousDuration = sound.duration
+        }
+    }
+
+    //            for (i in mdsl.list) {
+//                val note = i.code
+//                if (i.duration == .0) {
+//                    noteOnPenultimate(note, 0, i.velocity)
+//                    noteOff(note, 0, i.velocity)
+//                } else {
+//                    noteOn(note, 0, i.velocity)
+//                    noteOff(note, (minimsTicks * 2 * i.duration).toInt(), i.velocity)
+//                }
+//            }
+
+//            meta(MetaEventType.META_END_OF_TRACK)
+}
+
 class MiderDSL {
     val list = mutableListOf<note>()
+    val otherTracks = mutableListOf<MiderDSL>()
     private val i = listOf(I(0), I(2), I(4), I(5), I(7), I(9), I(11))
     private val entrusti = mutableMapOf<String, note>()
     private val entrustc = mutableMapOf<String, MutableList<note>>()
@@ -106,8 +178,12 @@ class MiderDSL {
      * 开头不能是休止符
      */
     val O: rest get() {
-        if (list.size == 0) throw Exception("rest note should not place at the beginning")
-        current.duration += getRealDuration(duration)
+        if (list.size == 0)
+            push(note('O', 4))
+        else {
+            current.duration += getRealDuration(duration)
+            // throw Exception("rest note should not place at the beginning")
+        }
         return __rest_instance
     }
     val C: I get() {
@@ -141,6 +217,99 @@ class MiderDSL {
     // temp
     val T : I get() {
         return i.random()
+    }
+
+    interface InListSound : Cloneable {
+        val duration: Double
+        public override fun clone(): InListSound
+    }
+
+    class InListNote(val code: Byte, override val duration: Double, val velocity: Byte) : InListSound, Cloneable {
+        constructor(note: note): this(note.code, note.duration, note.velocity)
+        override fun toString(): String = "[$code|${duration}|$velocity]"
+        override fun clone(): InListNote {
+            return InListNote(code, duration, velocity)
+        }
+    }
+
+    class InListRestNote(override val duration: Double): InListSound {
+        override fun clone(): InListSound = InListRestNote(duration)
+        override fun toString(): String = "[duration: $duration]"
+    }
+
+    class InListChord(val code: List<Byte>, override val duration: Double, val velocity: List<Byte>): InListSound, Cloneable {
+        override fun clone(): InListChord {
+            return InListChord(code, duration, velocity)
+        }
+        override fun toString(): String = "[$code|${duration}|$velocity]"
+    }
+
+    fun List<InListSound>.clone(): List<InListSound> {
+        val l = mutableListOf<InListSound>()
+        forEach {
+            l += it.clone()
+        }
+        return l
+    }
+
+    @JvmName("cloneByteList")
+    fun List<Byte>.clone(): List<Byte> {
+        val l = mutableListOf<Byte>()
+        forEach {
+            l += it
+        }
+        return l
+    }
+
+    fun adjustedList(): MutableList<InListSound> {
+        val ret = mutableListOf<InListSound>()
+        var flag = true
+        val chordNotes = mutableListOf<Byte>()
+        val chordVelocity = mutableListOf<Byte>()
+        var chordDuration: Double = .0
+
+        G
+
+        list.forEachIndexed { index, it ->
+
+            if (it.name == 'O') {
+                ret += InListRestNote(it.duration)
+                return@forEachIndexed
+            }
+
+            if (it.duration != .0) {
+                if (!flag) {
+                    ret += InListChord(chordNotes.clone(), chordDuration, chordVelocity.clone())
+                    chordDuration = .0
+                    chordNotes.clear()
+                    chordVelocity.clear()
+                }
+
+                ret += InListNote(it)
+                flag = true
+            } else {
+                if (flag) {
+                    val root = ret.removeLast() as InListNote
+                    chordNotes += root.code
+                    chordVelocity += root.velocity
+                    chordDuration = root.duration
+                    flag = false
+                }
+
+                chordNotes += it.code
+                chordVelocity += it.velocity
+            }
+        }
+
+        ret.removeLast()
+
+        return ret
+    }
+
+    fun track(block: MiderDSL.() -> Any) {
+        val new = MiderDSL()
+        new.block()
+        otherTracks += new
     }
 
     /**
@@ -444,6 +613,15 @@ class MiderDSL {
      */
     fun def(block: MiderDSL.() -> Any): MiderDSL.() -> Any = block
 
+    fun run(block: MiderDSL.() -> Any): MiderDSL.() -> Any {
+        !block
+        return block
+    }
+
+    fun octave(block: MiderDSL.() -> Any) = interval(12, block = block)
+
+    fun interval(interval: Int, times: Int = 1, block: MiderDSL.() -> Any) = interval(interval, times).invoke(block)
+
     fun velocity(v: Byte, block: MiderDSL.() -> Any) {
         val _velocity = velocity
         velocity = v
@@ -491,6 +669,7 @@ class MiderDSL {
         if (start == end) return listOf<note>() to aret // 返回空列表
 
         for (i in start until end) {
+            if (list[i].name == 'O') continue
             res += list[i]
         }
 
@@ -511,10 +690,13 @@ class MiderDSL {
 
             if (first_letter == 'O') {
                 // rest
-                if (list.size == 0) throw Exception("rest note should not place at the beginning")
+                if (list.size == 0) {
+                    push(note('O', 4, .0))
+                    // throw Exception("rest note should not place at the beginning")
+                }
 
                 if (length == 1) {
-                    current.duration += getRealDuration(duration)
+                     current.duration += getRealDuration(duration)
                 } else if (it[1] == '*') {
                     val v = it.substring(2 until it.length).toDouble()
                     current.duration += getRealDuration(duration) * v
@@ -609,6 +791,9 @@ class MiderDSL {
         return n
     }
 
+    fun debug() {
+        list.forEach(::println)
+    }
 
     companion object {
 
@@ -742,13 +927,12 @@ class MiderDSL {
     inner class note(var name: Char, var pitch: Byte = this@MiderDSL.pitch, var duration: Double = getRealDuration(this@MiderDSL.duration), var velocity: Byte = this@MiderDSL.velocity, var sfn: SFNType = SFNType.Self): Cloneable {
 
         init {
-            if (name !in "CDEFGAB") throw Exception("unsupport note: $name")
+            if (name !in "CDEFGABO") throw Exception("unsupport note: $name")
             if (duration < 0) throw Exception("duration: $duration has to > 0")
         }
 
         var code: Byte = 0
             get() {
-
                 val id = getNoteBasicOffset(name) + when(sfn) {
                     SFNType.Sharp -> 1
                     SFNType.Flat -> -1
@@ -1013,6 +1197,35 @@ class MiderDSL {
         override fun toString(): String = "<$note_list>"
     }
 
+    inner class interval(var value: Int, val times: Int = 1) {
+        operator fun invoke(block: MiderDSL.() -> Any): Any {
+
+            val notes = getInsertedNotes(block)
+            notes.first.reversed().forEachIndexed { index, root ->
+                genList(root).forEachIndexed { i, it ->
+                    insert(list.size - (index * (1 + times) + i), it)
+                }
+            }
+
+            return notes.second
+        }
+
+        private fun genList(root: note): MutableList<note> {
+            val tList = mutableListOf<note>()
+            for (i in 1 .. times) {
+                val note = root.clone()
+                note.duration = .0
+                if (value > 0) {
+                    note += (i * value).toByte()
+                } else {
+                    note -= abs(i * value).toByte()
+                }
+                tList += note
+            }
+            return tList
+        }
+    }
+
     inner class I(val id: Byte) {
 
         constructor(n: Char) : this(getNoteBasicOffset(n))
@@ -1152,7 +1365,6 @@ class MiderDSL {
             } as chord
         }
 
-
         operator fun rangeTo(x: I) : Iin {
             val lastIndex = list.lastIndex
 
@@ -1196,6 +1408,12 @@ class MiderDSL {
             val origin = current.pitch
             current.pitch = (origin - x).toByte()
             return this
+        }
+
+        operator fun minus(i: I): interval {
+            val int = interval( last - current)
+            pop(2)
+            return int
         }
 
         operator fun minusAssign(x: Byte) {

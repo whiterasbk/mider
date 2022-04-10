@@ -1,16 +1,73 @@
-import whiter.music.mider.*
+import whiter.music.mider.MetaEventType
 import whiter.music.mider.dsl.apply
 import java.math.BigDecimal
-import java.math.BigInteger
-import kotlin.math.*
+
+import whiter.music.mider.MidiFile
+import whiter.music.mider.MetaEventType.*
+import whiter.music.mider.EventType.*
+import whiter.music.mider.*
+import whiter.music.mider.Note.*
 
 fun main(args: Array<String>) {
 //    test2()
 
+//    val list = mutableListOf(1)
+//    list.add(list.lastIndex, 0)
+//    println(list)
+
+//    val l1 = listOf<Int>()
+//    val l2 = listOf<Int>(5)
+//    val l3 = (l1 + l2).toMutableList()
+//    l2.reversed().forEachIndexed { index, it ->
+//        l3.add(l3.size - index * 2, it)
+//    }
+//    println(l3)
+
+    app()
+
+}
+
+fun app() {
+    apply("src/main/resources/saigetsu.mid") {
+        bpm = 100
+
+        C(minor) {
+            G; B
+            5 { C; E; F*2; E; F; G*2; E; C }
+            B; G
+            5 { E; F; C*2; C; E; F*2; E; F; G*2; B; C+1 }
+            6 { E; D; C/4; D/4; C/2; B-1; C*2 }
+            5 {
+                B; G; F*2; G; E; F*2; E; F; G.dot; C/2; E/2; F/2; E; C*2; C; B-1
+                C.dot; B/4-1; C/4; E; F; G; F; B*2-1; C*4; G-1; B-1; C; E
+            }
+
+            (F[5]-A) {
+                A*2; G; A; B*2
+            }
+
+            E+1; C+1
+        }
+
+        track {
+            pitch = 2
+            velocity = 75
+            C(minor) {
+                O*4
+                val p1 = run { A; A; E+1; A; B; B; F+1; B }
+                3 { C; C; G; C; E; D; C }; B
+                !p1
+            }
+        }
+
+        debug()
+
+    }
+
     apply("src/main/resources/mdsl.mid") {
-        val e by E[5] into "e"
-        val d by D[5] into "d"
-        val c by C[5] into "c"
+//        val e by E[5] into "e"
+//        val d by D[5] into "d"
+//        val c by C[5] into "c"
 
 //        G; e; d; c; G; G; G;
 //        G; e; d; c; A; A; A;
@@ -20,27 +77,27 @@ fun main(args: Array<String>) {
 //        val a: Int = 455559536
 //        println(a)
 
-        defaultNoteDuration = 4
-
-//        !123956979
-        val pi = BigDecimal("-3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679")
-
-        -pi
-
-
-        (5 to .3) {
-
-        }
-
-        (D to A) {
-
-        }
+//        defaultNoteDuration = 4
+//
+////        !123956979
+//        val pi = BigDecimal("-3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679")
+//
+//        -pi
+//
+//
+//        (5 to .3) {
+//
+//        }
+//
+//        (D to A) {
+//
+//        }
 
 
 
         //~BigInteger("1")
 
-        list.forEach(::println)
+//        list.forEach(::println)
 
 //        !PI
 //        BigInteger("33333333333333333333333333333333333333333")
