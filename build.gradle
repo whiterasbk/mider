@@ -29,16 +29,16 @@ test {
     useJUnitPlatform()
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            // Creates a Maven publication called "release".
-            release(MavenPublication) {
-                from components.release
-                groupId = 'com.github.whiterasbk'
-                artifactId = 'mider'
-                version = '0.9'
-            }
-        }
-    }
-}
+//afterEvaluate {
+//    publishing {
+//        publications {
+//            // Creates a Maven publication called "release".
+//            release(MavenPublication) {
+//                from components.release
+//                groupId = 'com.github.whiterasbk'
+//                artifactId = 'mider'
+//                version = '0.9'
+//            }
+//        }
+//    }
+//}
