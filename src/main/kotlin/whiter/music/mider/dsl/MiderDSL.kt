@@ -1,5 +1,7 @@
 package whiter.music.mider.dsl
 
+// 查看源码前请自备降压药!!!
+
 import whiter.music.mider.MetaEventType
 import whiter.music.mider.MidiFile
 import whiter.music.mider.Track
@@ -131,6 +133,8 @@ class MiderDSL {
     private val __rest_instance = rest()
     private val current: note get() = list[list.lastIndex]
     private val last: note get() = list[list.lastIndex - 1]
+    private var isInRepeat: Boolean = false
+    private var repeatCount: Int = 0
     val major = 0
     val minor = 1
     /**
@@ -437,6 +441,16 @@ class MiderDSL {
         pitch = _pitch
     }
 
+    fun higher(step: Byte = 1, block: MiderDSL.() -> Any) {
+        val inc = pitch + step
+        inc(block)
+    }
+
+    fun lower(step: Byte = 1, block: MiderDSL.() -> Any) {
+        val inc = pitch - step
+        inc(block)
+    }
+
     /**
      * 在作用范围内设定任意时值
      * 用法:
@@ -575,12 +589,45 @@ class MiderDSL {
         return inserted.second
     }
 
-    // todo 使用大调还是小调
-    fun use(mode: IntArray, root: note, block: MiderDSL.() -> Any) {
+    // 获取同名小调
+    fun toNamedMinor(name: Ks, block: MiderDSL.() -> Any) {
         getInsertedNotes(block).first.forEach {
-
+            if (it.sfn != SFNType.Natural) {
+                val container = transMinorArray(name).toMutableList()
+                val sign = container.removeFirst()
+                if (sign == '&') return
+                when(sign) {
+                    '+' -> {
+                        if (it.name in container) it += 1
+                    }
+                    '-' -> {
+                        if (it.name in container) it -= 1
+                    }
+                }
+            }
         }
     }
+
+    //todo complete
+    private fun transMinorArray(name: Ks): Array<Char> {
+        return when(name) {
+            Ks.C -> arrayOf('-', 'E', 'A', 'B')
+            Ks.D -> arrayOf('-', 'B')
+            Ks.E -> arrayOf('+', 'F')
+            Ks.F -> arrayOf('-', 'A', 'B', 'D', 'E')
+            Ks.G -> arrayOf('-', 'B', 'E')
+            Ks.A -> arrayOf('&')
+            Ks.B -> arrayOf('+', 'F', 'C')
+            else -> TODO()
+        }
+    }
+
+//    // todo 使用大调还是小调
+//    fun use(mode: IntArray, root: note, block: MiderDSL.() -> Any) {
+//        getInsertedNotes(block).first.forEach {
+//
+//        }
+//    }
 
     /**
      * 将作用范围内重复音符
@@ -595,7 +642,49 @@ class MiderDSL {
      */
     fun repeat(times: Int = 2, block: MiderDSL.() -> Any) {
         if (times <= 0) return
-        for (i in 0 until times) !block
+
+        isInRepeat = true
+        val _privousCount = repeatCount
+        for (i in 0 until times) {
+            repeatCount = i
+            val notes = getInsertedNotes(block).first
+            if (i > 0) {
+                notes.forEachIndexed { _, note ->
+                    note.repeatReplaceNotes?.let {
+                        val replaceList = it
+                        if (replaceList.isNotEmpty()) {
+                            if (replaceList.size < times - 1) {
+                                for (e in 0 until times - 1 - replaceList.size) {
+                                    replaceList.add(replaceList.last())
+                                }
+                            }
+
+                            note.copyFrom(replaceList[i - 1])
+                            note.repeatReplaceNotes = null
+
+                            if (replaceList.size > times - 1) {
+                                val rest = replaceList.subList(times - 1, replaceList.size)
+                                val index = list.indexOf(note)
+                                rest.reversed().forEach { restNotes ->
+                                    insert(index + 1, restNotes)
+                                }
+                            }
+                        }
+                    } ?: run {
+                        println("null")
+                    }
+                }
+            }
+        }
+        repeatCount = _privousCount
+        isInRepeat = false
+    }
+
+    fun replace(vararg blocks: MiderDSL.() -> Any) {
+        if (isInRepeat) {
+            if (blocks.lastIndex < repeatCount) !blocks.last()
+            else !blocks[repeatCount]
+        }
     }
 
     /**
@@ -613,7 +702,7 @@ class MiderDSL {
      */
     fun def(block: MiderDSL.() -> Any): MiderDSL.() -> Any = block
 
-    fun run(block: MiderDSL.() -> Any): MiderDSL.() -> Any {
+    fun exec(block: MiderDSL.() -> Any): MiderDSL.() -> Any {
         !block
         return block
     }
@@ -795,6 +884,16 @@ class MiderDSL {
         list.forEach(::println)
     }
 
+    operator fun Int.times(i: I) {
+        for (index in 0 until this - 1) {
+            push(current.clone())
+        }
+    }
+
+    infix fun Int.dot(times: Int) = this * Math.pow(1.5, times.toDouble())
+
+    val Int.dot get() = this dot 1
+
     companion object {
 
         // 推断距离根音音程
@@ -931,6 +1030,8 @@ class MiderDSL {
             if (duration < 0) throw Exception("duration: $duration has to > 0")
         }
 
+        var repeatReplaceNotes: MutableList<note>? = mutableListOf<note>()
+
         var code: Byte = 0
             get() {
                 val id = getNoteBasicOffset(name) + when(sfn) {
@@ -1006,6 +1107,18 @@ class MiderDSL {
         override fun toString(): String = "[${sfn.symbol}$name${pitch}|${duration}|$velocity]"
 
         public override fun clone(): note = super.clone() as note
+
+        fun copyTo(to: note) {
+            to.code = code
+            to.duration = duration
+            to.velocity = velocity
+        }
+
+        fun copyFrom(to: note) {
+            code = to.code
+            duration = to.duration
+            velocity = to.velocity
+        }
 
     }
 
@@ -1138,18 +1251,26 @@ class MiderDSL {
             }
         }
 
+        infix fun inverse(v: I) = this / T
+
+        // todo fix different pitch
         operator fun div(v: I): chord {
             val bass = current.code
             val pList = pop()
             val chord_codes = getChordNotesFromList()
             val notes_codes = chord_codes.map { it.code }
-            if (bass !in notes_codes) throw Exception("given note: ${pList[0].name} not in chord: $this")
 
-            chord_codes.forEach {
-                if (it.code < bass) {
-                    it.pitch++
+            if (bass % 12 !in notes_codes.map { it % 12 }) throw Exception("given note: ${pList[0].name} not in chord: $this")
+
+            val target = chord_codes.find { bass % 12 == it.code % 12 }
+            target?.let { b ->
+                chord_codes.forEach {
+                    if (it.code < b.code) {
+                        it.pitch++
+                    }
                 }
-            }
+            } ?: throw Exception("given note: ${pList[0].name} not in chord: $this")
+
             return this
         }
 
@@ -1267,15 +1388,19 @@ class MiderDSL {
 
         operator fun invoke(mf: Int = major, block: MiderDSL.() -> Any) {
             val tothat = this(mf)
-            val originKeySignature = keySignature
-            keySignature?.let {
-                keySignature = tothat
-                (it to tothat) (block)
-            } ?: run {
-                keySignature = tothat
-                (C(major) to tothat)(block)
+            if (mf == minor) {
+                toNamedMinor(tothat.first, block)
+            } else {
+                val originKeySignature = keySignature
+                keySignature?.let {
+                    keySignature = tothat
+                    (it to tothat) (block)
+                } ?: run {
+                    keySignature = tothat
+                    (C(major) to tothat)(block)
+                }
+                keySignature = originKeySignature
             }
-            keySignature = originKeySignature
         }
 
         operator fun get(pitch: Byte, duration: Double = this@MiderDSL.duration) : I {
@@ -1313,6 +1438,9 @@ class MiderDSL {
             current.duration *= Math.pow(1.5, v.toDouble())
             return this
         }
+
+
+        infix fun triad(mode: Int): chord = if (mode == major) this triad majorChord else this triad minorChord
 
         // 构建三和弦
         infix fun triad(mode: Array<Int>): chord {
@@ -1434,6 +1562,14 @@ class MiderDSL {
         operator fun div(x: Float) : I = this / x.toDouble()
 
         operator fun div(x: Int) : I = this / x.toDouble()
+
+        infix fun or(i: I): I {
+            last.repeatReplaceNotes?.let {
+                it += current
+                pop()
+            }
+            return this
+        }
 
         infix fun C(x: I): I {
             insert(list.lastIndex, 'C')

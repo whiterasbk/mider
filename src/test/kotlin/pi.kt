@@ -1,7 +1,8 @@
 import whiter.music.mider.dsl.apply
+import kotlin.math.PI
 
 fun main(args: Array<String>) {
-    apply("src/test/resources/oyasumi.mid") {
-        !59833598225981112
+    apply("src/test/resources/pi.mid") {
+        !PI
     }
 }

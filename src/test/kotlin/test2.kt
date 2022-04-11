@@ -1,5 +1,4 @@
 
-import kotlin.reflect.KProperty
 
 fun main(args: Array<String>) {
 
