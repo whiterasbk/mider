@@ -49,7 +49,7 @@ midi.save("path/to/save")
 
 ```kotlin
 import whiter.music.mider.dsl.apply
-apply ("path/to/save.mid/double tiger.mid") {
+apply ("path/to/save/double tiger.mid") {
     repeat { C; D; E; C } // 重复两次 
     repeat { E; F; G*2 } // 音名 * [/] 数字 是调节时值
     repeat { '8' { G; A; G; F };  E; C } // 表示在作用范围内, 一个音符的默认时值为八分音符
