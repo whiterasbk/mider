@@ -154,6 +154,8 @@ fun main(vararg args: String) {
 
 ~~嗯, 血压↑↑~~
 
+生成的mid文件可以在 [src/test/resources](https://github.com/whiterasbk/mider/tree/master/src/test/resources) 内查看
+
 更多关于`mider dsl`的例子在 [src/test/kotlin](https://github.com/whiterasbk/mider/tree/master/src/test/kotlin) 目录下
 
 注解和规范请参考 [mider-dsl]() 
