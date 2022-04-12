@@ -3,7 +3,8 @@
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 ![Kotlin](https://img.shields.io/badge/kotlin-100%25-blue)
 ![Use](https://img.shields.io/badge/mid-generate-yellowgreen)
-![Rubbish](https://img.shields.io/badge/%E6%B2%BB%E7%96%97-%E9%AB%98%E8%A1%80%E5%8E%8B-orange)
+![Rubbish](https://img.shields.io/badge/%E6%B2%BB%E7%96%97-%E4%BD%8E%E8%A1%80%E5%8E%8B-orange)
+[![](https://www.jitpack.io/v/whiterasbk/mider.svg)](https://www.jitpack.io/#whiterasbk/mider)
 
 
 [comment]: <> ([![Language: Kotlin]&#40;https://img.shields.io/github/languages/top/shadowsocks/shadowsocks-android.svg&#41;]&#40;https://https://github.com/whiterasbk/mider/search?l=kotlin&#41;)
@@ -15,6 +16,23 @@
 纯`kotlin`实现, 效率低下, 强迫症暴怒, 低血压良方
 
 名称抄袭自 [mido](https://github.com/mido/mido)
+
+### 安装
+使用`gradle`
+
+在`build.gradle`添加如下代码
+
+```groovy
+repositories {
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+}
+
+dependencies {
+    implementation "com.github.whiterasbk:mider:alpha0.9"
+}
+```
+然后就可以使用啦
 
 ### 简单使用
 
