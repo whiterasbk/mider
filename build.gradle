@@ -57,7 +57,7 @@ publishing {
             groupId = 'com.github.whiterasbk'
             artifactId = 'mider'
             version = '0.9'
-            from components.kotlin
+            from components.java
         }
     }
 }
