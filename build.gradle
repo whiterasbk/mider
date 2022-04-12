@@ -35,13 +35,13 @@ java {
     withJavadocJar()
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.kotlin
-        }
-    }
-}
+//publishing {
+//    publications {
+//        maven(MavenPublication) {
+//            from components.kotlin
+//        }
+//    }
+//}
 
 wrapper {
     gradleVersion = "6.7"
@@ -49,16 +49,16 @@ wrapper {
 }
 
 
-afterEvaluate {
-    publishing {
-        publications {
-            // Creates a Maven publication called "release".
-            release(MavenPublication) {
-                from components.kotlin
-                groupId = 'com.github.whiterasbk'
-                artifactId = 'mider'
-                version = '0.9'
-            }
+//project.afterEvaluate {
+publishing {
+    publications {
+        // Creates a Maven publication called "release".
+        release(MavenPublication) {
+            groupId = 'com.github.whiterasbk'
+            artifactId = 'mider'
+            version = '0.9'
+            from components.kotlin
         }
     }
 }
+//}
