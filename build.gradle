@@ -35,21 +35,11 @@ java {
     withJavadocJar()
 }
 
-//publishing {
-//    publications {
-//        maven(MavenPublication) {
-//            from components.kotlin
-//        }
-//    }
-//}
-
 wrapper {
     gradleVersion = "6.7"
     distributionType = Wrapper.DistributionType.ALL
 }
 
-
-//project.afterEvaluate {
 publishing {
     publications {
         // Creates a Maven publication called "release".
@@ -61,4 +51,3 @@ publishing {
         }
     }
 }
-//}
