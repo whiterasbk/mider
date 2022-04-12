@@ -16,6 +16,7 @@ group 'whiter.music'
 version '0.9'
 
 repositories {
+    maven { url "https://jitpack.io" }
     mavenCentral()
 }
 
@@ -29,16 +30,35 @@ test {
     useJUnitPlatform()
 }
 
-//afterEvaluate {
-//    publishing {
-//        publications {
-//            // Creates a Maven publication called "release".
-//            release(MavenPublication) {
-//                from components.release
-//                groupId = 'com.github.whiterasbk'
-//                artifactId = 'mider'
-//                version = '0.9'
-//            }
-//        }
-//    }
-//}
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.kotlin
+        }
+    }
+}
+
+wrapper {
+    gradleVersion = "6.7"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.kotlin
+                groupId = 'com.github.whiterasbk'
+                artifactId = 'mider'
+                version = '0.9'
+            }
+        }
+    }
+}
