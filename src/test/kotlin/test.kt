@@ -1,6 +1,6 @@
 import whiter.music.mider.dsl.apply
 
-fun main(args: Array<String>) {
+fun main(vararg args: String) {
     apply("src/test/resources/oyasumi.mid") {
         !59833598225981112
     }
