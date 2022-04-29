@@ -11,6 +11,8 @@
 
 [comment]: <> ([![Releases]&#40;https://img.shields.io/github/downloads/shadowsocks/shadowsocks-android/total.svg&#41;]&#40;https://github.com/shadowsocks/shadowsocks-android/releases&#41;)
 
+《论要是不知道有 `javax.sound.midi` 包的存在会发生什么》
+
 人类低质量`.mid`文件生成库, 让你体验写三行代码不如别的库写一行代码的感觉
 
 纯`kotlin`实现, 效率低下, 强迫症暴怒, 低血压良方
