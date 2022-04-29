@@ -29,7 +29,7 @@ repositories {
 }
 
 dependencies {
-    implementation "com.github.whiterasbk:mider:alpha0.9"
+    implementation "com.github.whiterasbk:mider:beta0.9"
 }
 ```
 然后就可以使用啦
@@ -68,10 +68,10 @@ fun main(vararg args: String) {
 要开始使用, 只需要
 
 ```kotlin
-import whiter.music.mider.dsl.apply
+import whiter.music.mider.dsl.play
 
 fun main(vararg args: String) {
-    apply("path/to/save/double tigers.mid") {
+    play {
         repeat { C; D; E; C } // 重复两次 
         repeat { E; F; G * 2 } // 音名 * [/] 数字 是调节时值
         repeat { '8' { G; A; G; F }; E; C } // 表示在作用范围内, 一个音符的默认时值为八分音符
@@ -83,10 +83,10 @@ fun main(vararg args: String) {
 你已经学会`mider-dsl`的基本用法啦, 赶快去写一首野蜂飞舞吧(
 
 ```kotlin
-import whiter.music.mider.dsl.apply
+import whiter.music.mider.dsl.play
 
 fun main(vararg args: String) {
-    apply("path/to/save.mid") {
+    play {
         E(minor) {
 
             pitch = 5
@@ -150,12 +150,45 @@ fun main(vararg args: String) {
 }
 ```
 
-[![LZ4UzR.jpg](https://s1.ax1x.com/2022/04/12/LZ4UzR.jpg)](https://imgtu.com/i/LZ4UzR)
+[![LvRfJK.png](https://s1.ax1x.com/2022/04/29/LvRfJK.png)](https://imgtu.com/i/LvRfJK)
 
 ~~嗯, 血压↑↑~~
 
-生成的mid文件可以在 [src/test/resources](https://github.com/whiterasbk/mider/tree/master/src/test/resources) 内查看
+生成 `mid` 可用 `apply`函数, 生成的文件可以在 [src/test/resources](https://github.com/whiterasbk/mider/tree/master/src/test/resources) 内查看
 
+### 绝对音准练习程序
+
+一个训练绝对音准的小`demo`, 音高范围目前在`C2~C3`
+
+```kotlin
+import whiter.music.mider.practise.absolutepitch.practise1
+
+fun main(args: Array<String>) {
+    practise1()
+}
+```
+
+```shell
+tips: 输入答案时可以用唱名, 也可以用音名或者音名加数字的是形式, 不区分大小写; 不写音高的时默认为2, 高八度的C必须要写成C3或8
+输入训练次数: 5
+第 1 道题, 请输入答案: 2
+答案错误, 正确答案: E2
+
+第 2 道题, 请输入答案: 7
+答案正确: B2
+
+第 3 道题, 请输入答案: 2
+答案错误, 正确答案: E2
+
+第 4 道题, 请输入答案: 4
+答案错误, 正确答案: E2
+
+第 5 道题, 请输入答案: 6
+答案正确: A2
+
+练习结束, 总共 5 道题, 正确 2 道, 正确率 40.0%
+```
+----------------
 更多关于`mider dsl`的例子在 [src/test/kotlin](https://github.com/whiterasbk/mider/tree/master/src/test/kotlin) 目录下
 
 注解和规范请参考 [mider-dsl]() 

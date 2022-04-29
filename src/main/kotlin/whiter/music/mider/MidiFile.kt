@@ -1,9 +1,9 @@
 package whiter.music.mider
 
-import java.io.File
-import java.io.FileOutputStream
+import java.io.*
 import java.nio.ByteBuffer
 import java.nio.channels.Channel
+import java.nio.channels.Channels
 import java.nio.channels.WritableByteChannel
 
 interface HasByteSize {
@@ -55,14 +55,28 @@ class MidiFile(private val format: MidiFormat = MidiFormat.MIDI_MULTIPLE, privat
             it.writeMessage(channel, buffer)
         }
 
+//        channel.close()
+    }
+
+    fun getFileSize(): Int {
+        return trackChain.sumOf { it.headOccupied + it.messageOccupied } + 6 + 4 + 4
+    }
+
+    fun inStream(): InputStream {
+        val baos = ByteArrayOutputStream(getFileSize())
+        val channel = Channels.newChannel(baos)
+        channel(channel)
+        val array = baos.toByteArray()
         channel.close()
+        return ByteArrayInputStream(array)
     }
 
     fun save(fileName: String) {
         val file = File(fileName)
         val fos = FileOutputStream(file)
-
-        channel(fos.channel)
+        fos.channel.use {
+            channel(it)
+        }
         fos.close()
 
         file.setLastModified(System.currentTimeMillis())

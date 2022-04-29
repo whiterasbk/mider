@@ -2,12 +2,9 @@ package whiter.music.mider.dsl
 
 // 查看源码前请自备降压药!!!
 
-import whiter.music.mider.MetaEventType
-import whiter.music.mider.MidiFile
 import whiter.music.mider.Track
 import java.math.BigDecimal
 import java.math.BigInteger
-import kotlin.math.log2
 import kotlin.math.*
 import kotlin.reflect.KProperty
 
@@ -16,73 +13,7 @@ import kotlin.reflect.KProperty
  * @param path 要保存到的路径
  * @param block 音符块
  */
-fun apply(path: String, block: MiderDSL.() -> Any) {
-    val mdsl = MiderDSL()
-    val minimsTicks = 960
-    val clock: Byte = 18
-    with(mdsl, block)
-    val midi = MidiFile()
-    midi.append {
-        track {
-//            meta(MetaEventType.META_TEMPO, args = bpm(mdsl.bpm))
-            tempo(mdsl.bpm)
-
-            mdsl.keySignature?.let {
-                meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
-            }
-
-            mdsl.timeSignature?.let {
-                meta(MetaEventType.META_TIME_SIGNATURE, it.first.toByte(), log2(it.second.toDouble()).toInt().toByte(), clock, 8)
-            }
-
-            end()
-
-//            meta(MetaEventType.META_END_OF_TRACK)
-        }
-
-        track {
-            changeProgram(mdsl.program.id.toByte())
-
-            parseSound(minimsTicks, mdsl.adjustedList())
-
-//            for (sound in mdsl.adjustedList()) {
-//                if (sound is MiderDSL.InListNote) {
-//                    noteOn(sound.code, 0, sound.velocity)
-//                    noteOff(sound.code, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity)
-//                } else if (sound is MiderDSL.InListChord) {
-//                    sound.code.forEachIndexed { index, it ->
-//                        noteOn(it, 0, sound.velocity[index])
-//                    }
-//                    val off = sound.code.toMutableList()
-//                    val root = off.removeFirst()
-//
-//                    noteOff(root, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity[0])
-//
-//                    off.forEachIndexed { index, it ->
-//                        noteOff(it, 0, sound.velocity[index])
-//                    }
-//                }
-//            }
-
-
-
-            end()
-        }
-
-        if (mdsl.otherTracks.isNotEmpty()) {
-            mdsl.otherTracks.forEach {
-                track {
-                    changeProgram(it.program.id.toByte())
-                    parseSound(minimsTicks, it.adjustedList())
-                    end()
-                }
-            }
-        }
-    }
-    midi.save(path)
-}
-
-private fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) {
+fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) {
     var previousDuration: Double? = null
     for (sound in list) {
         if (sound is MiderDSL.InListNote) {
