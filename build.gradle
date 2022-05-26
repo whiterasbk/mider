@@ -49,7 +49,7 @@ publishing {
             groupId = 'com.github.whiterasbk'
             artifactId = 'mider'
             version = projectVersion
-            from components.java
+            from components.kotlin
         }
     }
 }
