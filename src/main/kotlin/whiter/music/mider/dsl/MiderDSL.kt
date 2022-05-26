@@ -1353,9 +1353,6 @@ class MiderDSL {
             "min", "minor" -> minor
             else -> major
         }
-
-        println(current)
-        println(mv)
         T(mv, block)
     }
 
