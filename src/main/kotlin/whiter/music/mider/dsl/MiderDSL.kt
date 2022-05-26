@@ -272,7 +272,9 @@ class MiderDSL {
      * 在8之后, 一个8表示升一个八度, 一个9表示升一个半音, 一个0表示增加一倍时长, 一个.表示增加为原来的1.5倍
      * 在9之后, 一个8表示降一个八度, 一个9表示降一个半音, 一个0表示降二分之一时长, 一个.表示当前时长除以1.5
      * 0在8和9之前, 表示增加一个当前时长
-     * 有效音阶之后, 出现-则表示将当前音符时值设置为0
+     * 有效音阶之后, 出现+则表示将当前音符时值设置为原来的两倍
+     * 有效音阶之后, 出现-则表示将当前音符时值设置为原来的一半
+     * 有效音阶之后, 出现*则表示将当前音符时值设置为0
      * 如果单独一个8或9夹在有效音阶之间, 相当于88或者99
      * @receiver [Number] 要转换的数字
      */
@@ -283,8 +285,19 @@ class MiderDSL {
     operator fun BigDecimal.unaryMinus() = parseInt(toString())
 
     fun parseInt(str: String) {
+        // todo
+        //  8 后面的音符都升八度
+        //  9 后面的音符都降八度
+        //  80后面的音符时长都变为原来的一半
+        //  90后面的音符时长都变为原来的两倍
+        //  89后面的音符都升高半音
+        //  98后面的音符都降低半音
+        //  9.重置
+        //  8.重置
         var upFlag: Boolean? = null
         var symbolCount = 0
+
+        val doNextList = mutableListOf<()->Unit>()
 
         (str + "1").forEach {
             when (it) {
@@ -296,6 +309,12 @@ class MiderDSL {
                     }
                     symbolCount = 0
                     upFlag = null
+
+                    doNextList.forEach {
+                        it()
+                    }
+
+                    doNextList.clear()
                 }
 
                 '0' -> {
@@ -344,9 +363,51 @@ class MiderDSL {
                     if (upFlag == null || upFlag == true) current * 1.5 else current / 1.5
                 }
 
+                '*' -> {
+                    doNextList += {
+                        current.duration = getRealDuration(.0)
+                    }
+                }
+
+                '+' -> {
+                    if (list.size == 0) C
+                    if (upFlag == null || upFlag == true) current * 2.0
+                }
+
                 '-' -> {
                     if (list.size == 0) C
-                    current.duration = getRealDuration(.0)
+                    if (upFlag == null || upFlag == true) current / 2.0
+                }
+
+                '↑', 'i' -> {
+                    if (list.size == 0) C
+                    current + 12
+                }
+
+                '↓', '!' -> {
+                    if (list.size == 0) C
+                    current - 12
+                }
+
+                'b' -> {
+//                    if (list.size == 0) C
+                    doNextList += {
+                        current - 1
+                    }
+                }
+
+                '#' -> {
+//                    if (list.size == 0) C
+                    doNextList += {
+                        current + 1
+                    }
+                }
+
+                '&' -> {
+//                    if (list.size == 0) C
+                    doNextList += {
+                        current.sfn = SFNType.Natural
+                    }
                 }
             }
         }
@@ -549,7 +610,7 @@ class MiderDSL {
             Ks.G -> arrayOf('-', 'B', 'E')
             Ks.A -> arrayOf('&')
             Ks.B -> arrayOf('+', 'F', 'C')
-            else -> TODO()
+            else -> TODO("current mode has not implemented")
         }
     }
 
@@ -1276,6 +1337,26 @@ class MiderDSL {
             }
             return tList
         }
+    }
+
+    // 使用给定调式
+    fun useMode(mode: String, block: MiderDSL.() -> Any) {
+        C
+        val cmode = if (mode.first() in "+-b#") {
+            current.sfn = if (mode.first() == '+' || mode.first() == '#') SFNType.Sharp else SFNType.Flat
+            mode.substring(1, mode.length)
+        } else mode
+        current.name = cmode.first()
+
+        val mm = cmode.substring(1, cmode.length)
+        val mv = when(mm) {
+            "min", "minor" -> minor
+            else -> major
+        }
+
+        println(current)
+        println(mv)
+        T(mv, block)
     }
 
     inner class I(val id: Byte) {

@@ -1,4 +1,5 @@
 import whiter.music.mider.dsl.apply
+import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
     apply("src/test/resources/next to you.mid") {

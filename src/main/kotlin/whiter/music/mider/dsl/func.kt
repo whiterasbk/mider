@@ -24,6 +24,22 @@ fun play(autoClose: Boolean = true, block: MiderDSL.() -> Any) {
 }
 
 fun playAsync(autoClose: Boolean = false, block: MiderDSL.() -> Any): Long {
+    fromDsl(block).inStream().use {
+        sequencer.setSequence(it)
+        sequencer.open()
+        sequencer.start()
+        val delay: Long = sequencer.sequence.microsecondLength / 1000 + 500
+
+        if (autoClose) {
+            Timer().schedule(timerTask {
+                sequencer.close()
+            }, delay)
+        }
+        return delay
+    }
+}
+
+fun fromDsl(block: MiderDSL.() -> Any): MidiFile {
     val mdsl = MiderDSL()
     val minimsTicks = 960
     val clock: Byte = 18
@@ -60,19 +76,7 @@ fun playAsync(autoClose: Boolean = false, block: MiderDSL.() -> Any): Long {
         }
     }
 
-    midi.inStream().use {
-        sequencer.setSequence(it)
-        sequencer.open()
-        sequencer.start()
-        val delay: Long = sequencer.sequence.microsecondLength / 1000 + 500
-
-        if (autoClose) {
-            Timer().schedule(timerTask {
-                sequencer.close()
-            }, delay)
-        }
-        return delay
-    }
+    return midi
 }
 
 fun apply(path: String, block: MiderDSL.() -> Any) {
