@@ -9,21 +9,17 @@ import kotlin.concurrent.timerTask
 import kotlin.math.abs
 import kotlin.math.log2
 
-private val sequencer: Sequencer = MidiSystem.getSequencer()
-
-fun closeSequencer() {
-    sequencer.close()
-}
-
 fun play(autoClose: Boolean = true, block: MiderDSL.() -> Any) {
-    Thread.sleep(playAsync(false, block))
+    val pair = playAsync(false, block)
+    Thread.sleep(pair.first)
 
     if (autoClose) {
-        closeSequencer()
+        pair.second.close()
     }
 }
 
-fun playAsync(autoClose: Boolean = false, block: MiderDSL.() -> Any): Long {
+fun playAsync(autoClose: Boolean = false, block: MiderDSL.() -> Any): Pair<Long, Sequencer> {
+    val sequencer = MidiSystem.getSequencer()
     fromDsl(block).inStream().use {
         sequencer.setSequence(it)
         sequencer.open()
@@ -35,7 +31,7 @@ fun playAsync(autoClose: Boolean = false, block: MiderDSL.() -> Any): Long {
                 sequencer.close()
             }, delay)
         }
-        return delay
+        return delay to sequencer
     }
 }
 

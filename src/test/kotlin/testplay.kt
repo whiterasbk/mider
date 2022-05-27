@@ -1,5 +1,4 @@
 
-import whiter.music.mider.dsl.closeSequencer
 import whiter.music.mider.dsl.play
 import whiter.music.mider.dsl.playAsync
 

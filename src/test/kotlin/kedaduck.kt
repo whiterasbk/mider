@@ -3,16 +3,12 @@ import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
     play {
-        (-E) {
+        parseInt("11556650 44332210 5544332 ")
+    }
 
-
-            // ">g;-Emaj>gaC+C-a-C-D+DEG+G-E-G-E+DEC+C-a-C-D+DCagaC+C-a-C-D+DEG+G-E-G-E+DEC+C-a-C-D+DCagaC+C-a-C-D+DEG+G-E-G-E+DEC+C-a-C-D+DCa"
-        }
-
-
-
+    play {
         useMode("-E") {
-            repeat(3) {
+            repeat {
                 G-1; A-1; C*2; '8' { C; A-1; C }; D*2
                 D; E; G*2; '8' { G; E; G}; E*2
                 D; E; C*2; '8' { C; A-1; C }; D*2
@@ -20,4 +16,6 @@ fun main(args: Array<String>) {
             }
         }
     }
+
+
 }
