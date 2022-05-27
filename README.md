@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation "com.github.whiterasbk:mider:beta0.9"
+    implementation "com.github.whiterasbk:mider:kbeta0.9"
 }
 ```
 然后就可以使用啦
@@ -158,9 +158,9 @@ fun main(vararg args: String) {
 
 生成 `mid` 可用 `apply`函数, 生成的文件可以在 [src/test/resources](https://github.com/whiterasbk/mider/tree/master/src/test/resources) 内查看
 
-### 绝对音准练习程序
+### 相对音准练习程序
 
-一个训练绝对音准的小`demo`, 音高范围目前在`C2~C3`
+一个训练相对音准的小`demo`, 音高范围目前在`C2~C3`
 
 ```kotlin
 import whiter.music.mider.practise.absolutepitch.practise1
