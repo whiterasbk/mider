@@ -12,7 +12,7 @@ plugins {
     id 'maven-publish'
 }
 
-def projectVersion = '0.9.1'
+def projectVersion = '0.9.3'
 
 group 'whiter.music'
 version projectVersion

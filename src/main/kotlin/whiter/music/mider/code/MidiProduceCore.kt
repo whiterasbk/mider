@@ -2,56 +2,68 @@ package whiter.music.mider.code
 
 import whiter.music.mider.dsl.MiderDSL
 import whiter.music.mider.dsl.fromDslInstance
+import java.io.InputStream
 import java.util.*
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
 import kotlin.concurrent.timerTask
+import kotlin.contracts.ExperimentalContracts
 
-
+@ExperimentalContracts
 fun miderCodeToMiderDSL(msg: String): MiderDSL {
-    var arrowCount = 0
-    var availCount = 0
-    var defaultBmp = 80
-    var defaultPitch = 4
-    var mode = ""
 
-    msg.forEach {
-        if (arrowCount >= 2) return@forEach
-        if (it == '>') arrowCount ++
-        availCount ++
-    }
+    val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;vex|vex&au)|(;midi))*>")
+    // val cmdRegex = Regex("${startRegex.pattern}[\\S\\s]+")
 
-    val noteList = msg.substring(availCount, msg.length)//.replace(Regex("\\s*"), "")
-    val configPart = msg.substring(0, availCount).replace(">", "").split(";")
+    val noteLists = msg.split(startRegex).toMutableList()
+    noteLists.removeFirst()
+    val configParts = startRegex.findAll(msg).map { it.value.replace(">", "") }.toList()
 
-    configPart.forEach {
-        if (it.matches(Regex("\\d+b"))) {
-            defaultBmp = it.replace("b", "").toInt()
-        } else if (it.matches(Regex("[-+b#]?[A-G](min|maj|major|minor)?"))) {
-            mode = it
-        } else if (it.matches(Regex("\\d"))) {
-            defaultPitch = it.toInt()
-        }
-    }
+    val dslBlock: MiderDSL.() -> Unit = {
+        val changeBpm = { tempo: Int -> bpm = tempo }
 
-    val mdsl = MiderDSL()
+        noteLists.forEachIndexed { index, content ->
+            track {
+                var mode = ""
+                var defaultPitch = 4
+                defaultNoteDuration = 1
 
-    with(mdsl) {
-        bpm = defaultBmp
+                configParts[index].split(";").forEach {
+                    if (it == "f") {
+                        defaultPitch = 3
+                    } else if (it.matches(Regex("\\d+b"))) {
+                        changeBpm(it.replace("b", "").toInt())
+                    } else if (it.matches(Regex("[-+b#]?[A-G](min|maj|major|minor)?"))) {
+                        mode = it
+                    } else if (it.matches(Regex("\\d"))) {
+                        defaultPitch = it.toInt()
+                    } else if (it.matches(Regex("vex|wex&au"))) {
 
-        if (noteList.matches(Regex("[0-9.\\s-+*/|↑↓i!#b&]+"))) {
-            if (noteList.trim().matches(Regex("b+"))) {
-                ifUseMode(mode) { !toMiderNoteList(noteList, defaultPitch) }
-            } else {
-                if (defaultPitch != 4) pitch = defaultPitch.toByte()
-                ifUseMode(mode) { parseInt(noteList.replace(Regex("( {2}| \\| )"), "0")) }
+                    }
+                }
+
+                val sequence = macro(content)
+
+                val isStave =
+                    Regex("[c-gaA-G]").find(sequence) != null || Regex("(\\s*b\\s*)+").matches(sequence)
+
+                val rendered = toInMusicScoreList(
+                    sequence,
+                    isStave = isStave,
+                    pitch = defaultPitch, useMacro = false
+                )
+
+                ifUseMode(mode) {
+                    val stander = toMiderStanderNoteString(rendered)
+                    if (stander.isNotBlank()) !stander
+                }
             }
-        } else {
-            ifUseMode(mode) { !toMiderNoteList(noteList, defaultPitch) }
         }
     }
 
-    return mdsl
+    val dsl = MiderDSL()
+    dsl.dslBlock()
+    return dsl
 }
 
 private fun MiderDSL.ifUseMode(mode: String, block: MiderDSL.()-> Unit) {
