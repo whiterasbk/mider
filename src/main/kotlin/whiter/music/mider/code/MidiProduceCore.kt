@@ -10,7 +10,7 @@ import kotlin.concurrent.timerTask
 import kotlin.contracts.ExperimentalContracts
 
 @ExperimentalContracts
-fun miderCodeToMiderDSL(msg: String, macroConfig: MacroConfiguration = MacroConfiguration()): MiderDSL {
+fun miderCodeToMiderDSL(msg: String, config: MiderCodeParserConfiguration = MiderCodeParserConfiguration()): MiderDSL {
 
     val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;vex|vex&au)|(;midi))*>")
     // val cmdRegex = Regex("${startRegex.pattern}[\\S\\s]+")
@@ -42,7 +42,7 @@ fun miderCodeToMiderDSL(msg: String, macroConfig: MacroConfiguration = MacroConf
                     }
                 }
 
-                val sequence = macro(content, macroConfig)
+                val sequence = macro(content, config.macroConfiguration)
 
                 val isStave =
                     Regex("[c-gaA-G]").find(sequence) != null || Regex("(\\s*b\\s*)+").matches(sequence)
