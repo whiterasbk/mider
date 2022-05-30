@@ -178,7 +178,7 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
 }
 
 @ExperimentalContracts
-fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, useMacro: Boolean = true, config: MiderCodeParserConfiguration = MiderCodeParserConfiguration()): List<InMusicScore> {
 
     val list = mutableListOf<InMusicScore>()
     val doAfter = mutableListOf<(Char)->Unit>()
@@ -204,7 +204,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
             chord += chord.last().clone().lowerNoteName(times)
     }
 
-    seq.let { if (useMacro) macro(it, config) else it }.forEach { char ->
+    seq.let { if (useMacro) macro(it, config.macroConfiguration) else it }.forEach { char ->
 
         when (char) {
 
@@ -489,6 +489,24 @@ class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
 
         fun recursionLimit(times: Int) {
             recursionLimit = times
+        }
+    }
+}
+
+class MiderCodeParserConfiguration(build: Builder.() -> Unit = {}) {
+
+    var _isBlankReplaceWith0 = false
+    var macroConfiguration = MacroConfiguration()
+
+    inner class Builder {
+        var isBlankReplaceWith0: Boolean = false
+            set(value) {
+                _isBlankReplaceWith0 = value
+                field = value
+            }
+
+        fun macroConfig(block: MacroConfiguration.() -> Unit) {
+            macroConfiguration.block()
         }
     }
 }
