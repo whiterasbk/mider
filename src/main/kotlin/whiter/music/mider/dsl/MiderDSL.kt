@@ -821,6 +821,8 @@ class MiderDSL {
                             push(noteName, args[0].toInt().toByte(), getRealDuration(duration), snf)
                         } else if (args.size == 2) {
                             push(noteName, args[0].toInt().toByte(), getRealDuration(args[1].toDouble()), snf)
+                        } else if (args.size == 3) {
+                            push(noteName, args[0].toInt().toByte(), getRealDuration(args[1].toDouble()), snf, args[2].toInt().toByte())
                         } else throw Exception("parse failed")
                     } else if ('+' in withoutsnf || '*' in withoutsnf || '-' in withoutsnf || '/' in withoutsnf) {
                         val d = if ('*' in withoutsnf)
@@ -840,7 +842,7 @@ class MiderDSL {
         }
     }
 
-    private fun push(x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self) {
+    private fun push(x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self, velocity: Byte = 100) {
         list.add(note(x, pitch, getRealDuration(duration), velocity, sfn))
     }
 
@@ -860,7 +862,7 @@ class MiderDSL {
         return d * (1.0 / defaultNoteDuration)
     }
 
-    private fun insert(index: Int, x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self) {
+    private fun insert(index: Int, x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self, velocity: Byte = 100) {
         list.add(index, note(x, pitch, getRealDuration(duration), velocity, sfn))
     }
 

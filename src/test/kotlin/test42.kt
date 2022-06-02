@@ -1,8 +1,41 @@
+import whiter.music.mider.MidiFile
+import whiter.music.mider.dsl.MiderDSL
 import whiter.music.mider.dsl.apply
 
 import whiter.music.mider.dsl.MiderDSL.*
+import whiter.music.mider.dsl.play
+import whiter.music.mider.dsl.playDslInstance
+import javax.sound.midi.MidiSystem
 
 fun main(args: Array<String>) {
+
+//    val m = MidiFile().append {
+//        track {
+//            changeProgram(0)
+//            for (i in 0..24)
+//                note((64-i).toByte(), time = 800)
+//        }
+//
+//        track {
+//            changeProgram(41)
+//            for (i in 0..24)
+//                note((69 + i).toByte(), time = 900)
+//        }
+//
+//    }.inStream()
+//
+//    val se = MidiSystem.getSequencer()
+//    se.setSequence(m)
+//    se.open()
+//    se.start()
+
+//
+
+
+    play {
+        !"A[2,3]"
+    }
+
 //    test2()
 
 //    val list = mutableListOf(1)
@@ -17,7 +50,7 @@ fun main(args: Array<String>) {
 //    }
 //    println(l3)
 
-    app()
+//    app()
 
 }
 
