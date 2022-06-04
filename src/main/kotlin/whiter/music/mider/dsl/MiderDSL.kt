@@ -15,6 +15,7 @@ import kotlin.reflect.KProperty
  */
 fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) {
     var previousDuration: Double? = null
+
     for (sound in list) {
         if (sound is MiderDSL.InListNote) {
             if (previousDuration != null) {
@@ -25,9 +26,24 @@ fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) 
             }
             noteOff(sound.code, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity)
         } else if (sound is MiderDSL.InListChord) {
-            sound.code.forEachIndexed { index, it ->
-                noteOn(it, 0, sound.velocity[index])
+
+            // 新逻辑
+            if (previousDuration != null) {
+                val root = sound.code.first()
+                noteOn(root, (minimsTicks * 2 * previousDuration).toInt(), sound.velocity[0])
+                sound.code.subList(1, sound.code.size).forEachIndexed { index, it ->
+                    noteOn(it, 0, sound.velocity[index])
+                }
+                previousDuration = null
+            } else {
+                sound.code.forEachIndexed { index, it ->
+                    noteOn(it, 0, sound.velocity[index])
+                }
             }
+            // 原逻辑
+//            sound.code.forEachIndexed { index, it ->
+//                noteOn(it, 0, sound.velocity[index])
+//            }
             val off = sound.code.toMutableList()
             val root = off.removeFirst()
 

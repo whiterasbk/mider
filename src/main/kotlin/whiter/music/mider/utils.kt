@@ -145,7 +145,7 @@ class ByteArrayWrap(private vararg val array: Byte) {
 
 @ExperimentalContracts
 @JvmSynthetic
-public inline fun <reified T : Any> Any?.cast(): T {
+inline fun <reified T : Any> Any?.cast(): T {
     contract {
         returns() implies (this@cast is T)
     }

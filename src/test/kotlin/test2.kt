@@ -1,6 +1,8 @@
-
+import whiter.music.mider.code.miderCodeToMiderDSL
+import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
+
 
 //    with(MDSL()) {
 //        C D E F C+1 F D*5+1 F E D C*0; D+1

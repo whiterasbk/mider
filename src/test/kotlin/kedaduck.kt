@@ -1,10 +1,8 @@
+
 import whiter.music.mider.dsl.apply
 import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
-    play {
-        parseInt("11556650 44332210 5544332 ")
-    }
 
     play {
         useMode("-E") {

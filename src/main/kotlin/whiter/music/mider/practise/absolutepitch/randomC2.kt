@@ -4,7 +4,10 @@ import whiter.music.mider.dsl.play
 import java.util.*
 
 fun main(args: Array<String>) {
-    practise1()
+//    practise1()
+    play {
+        A;A;A;
+    }
 }
 
 fun practise1() {
