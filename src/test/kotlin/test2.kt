@@ -1,4 +1,3 @@
-import whiter.music.mider.code.miderCodeToMiderDSL
 import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
