@@ -443,6 +443,8 @@ class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
         val ifNotDefinePattern = Regex("if!def\\s+([a-zA-Z_]\\w*)\\s+[^>]+")
         val repeatPattern = Regex("repeat\\s+(\\d+)\\s*:\\s*[^>]+")
         val includePattern = Regex("include\\s+((https?|ftp|file)://)?[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]")
+        val commentPattern = Regex("#\\s+[\\s\\S]+")
+        val velocityPattern = Regex("velocity\\s+(linear\\s|func\\s)(\\d{1,3}\\s*~\\s*\\d{1,3})\\s*:\\s*[^>]+")
     }
 
     var recursionCount = 0 // 递归次数统计
@@ -494,7 +496,7 @@ class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
 }
 
 class MiderCodeParserConfiguration(build: Builder.() -> Unit = {}) {
-
+    var formatMode: String = "internal->java-lame"
     var _isBlankReplaceWith0 = false
     var macroConfiguration = MacroConfiguration()
 
