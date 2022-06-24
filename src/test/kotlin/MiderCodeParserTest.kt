@@ -1,4 +1,3 @@
-import whiter.music.mider.code.MiderCodeParserConfiguration
 import whiter.music.mider.code.produceCore
 import whiter.music.mider.dsl.playDslInstance
 import kotlin.contracts.ExperimentalContracts

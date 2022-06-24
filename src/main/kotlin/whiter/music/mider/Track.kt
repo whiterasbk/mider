@@ -99,11 +99,11 @@ class Track {
         message(Event(EventType.note_off, byteArrayOf(note, velocity), channel), time)
     }
 
-    fun noteOn(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun noteOn(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         noteOn(note.id, time, velocity, channel)
     }
 
-    fun noteOff(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun noteOff(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         noteOff(note.id, time, velocity, channel)
     }
 
@@ -113,7 +113,7 @@ class Track {
         noteOn(note, time, velocity, channel)
     }
 
-    fun note(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun note(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         note(note.id, time, velocity, channel)
     }
 
@@ -130,11 +130,11 @@ class Track {
         messagePenultimate(Event(EventType.note_off, byteArrayOf(note, velocity), channel), time)
     }
 
-    fun noteOnPenultimate(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun noteOnPenultimate(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         noteOnPenultimate(note.id, time, velocity, channel)
     }
 
-    fun noteOffPenultimate(note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
+    fun noteOffPenultimate(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         noteOffPenultimate(note.id, time, velocity, channel)
     }
 

@@ -2,7 +2,10 @@ package whiter.music.mider
 
 import kotlin.math.abs
 
-enum class Note(val id: Byte) {
+/**
+ * 所有 midi 音符的枚举
+ */
+enum class MidiNote(val id: Byte) {
     `C-1`(0), `CS-1`(1), `D-1`(2), `DS-1`(3), `E-1`(4), `F-1`(5), `FS-1`(6), `G-1`(7), `GS-1`(8), `A-1`(9), `AS-1`(10), `B-1`(11),
     C0(12), CS0(13), D0(14), DS0(15), E0(16), F0(17), FS0(18), G0(19), GS0(20), A0(21), AS0(22), B0(23),
     C1(24), CS1(25), D1(26), DS1(27), E1(28), F1(29), FS1(30), G1(31), GS1(32), A1(33), AS1(34), B1(35),
@@ -15,16 +18,16 @@ enum class Note(val id: Byte) {
     C8(108), CS8(109), D8(110), DS8(111), E8(112), F8(113), FS8(114), G8(115), GS8(116), A8(117), AS8(118), B8(119),
     C9(120), CS9(121), D9(122), DS9(123), E9(124), F9(125), FS9(126), G9(127);
 
-    operator fun plus(v: Byte): Note {
+    operator fun plus(v: Byte): MidiNote {
         return from((id + v).toByte()) ?: throw Exception("can not find id: ${id + v} in class Note")
     }
 
-    operator fun minus(v: Byte): Note {
+    operator fun minus(v: Byte): MidiNote {
         return from((id - v).toByte()) ?: throw Exception("can not find id: ${id - v} in class Note")
     }
 
     companion object {
-        fun from(id: Byte): Note? {
+        fun from(id: Byte): MidiNote? {
             // todo 使用二分查找查找音符, kotlin的查找太特么原始了（
             return values().find {
                 it.id == id
@@ -32,39 +35,39 @@ enum class Note(val id: Byte) {
         }
     }
 
-    fun up(signature: String = "C"): Note {
+    fun up(signature: String = "C"): MidiNote {
         return when(toString().replace("`", "")[0]) {
             'E', 'B' -> this + 1
             else -> this + 2
         }
     }
 
-    fun up(times: Byte, signature: String = "C"): Note {
+    fun up(times: Byte, signature: String = "C"): MidiNote {
         if (times == 0.toByte()) return this
 
-        var res: Note = this
+        var res: MidiNote = this
         for (i in 0 until times)
             res = res.up(signature)
         return res
     }
 
-    fun down(signature: String = "C"): Note {
+    fun down(signature: String = "C"): MidiNote {
         return when(toString().replace("`", "")[0]) {
             'F', 'C' -> this - 1
             else -> this - 2
         }
     }
 
-    fun down(times: Byte, signature: String = "C"): Note {
+    fun down(times: Byte, signature: String = "C"): MidiNote {
         if (times == 0.toByte()) return this
 
-        var res: Note = this
+        var res: MidiNote = this
         for (i in 0 until times)
             res = res.down(signature)
         return res
     }
 
-    fun shift(n: Int): Note {
+    fun shift(n: Int): MidiNote {
         return if (n == 0) this else if (n > 0) {
             up(n.toByte())
         } else {

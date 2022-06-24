@@ -1,4 +1,4 @@
-package whiter.music.mider.practise.absolutepitch
+package whiter.music.mider.practise.relativepitch
 
 import whiter.music.mider.dsl.play
 import java.util.*

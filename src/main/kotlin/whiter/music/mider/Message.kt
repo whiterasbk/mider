@@ -42,7 +42,7 @@ interface IMessage: HasByteSize, HexData {
 }
 
 class Message(val event: Event, val time: Int = 0) : IMessage {
-    constructor(eventType: EventType, note: Note, time: Int = 0, velocity: Byte = 100, channel: Byte = 0)
+    constructor(eventType: EventType, note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0)
             : this(Event(eventType, byteArrayOf(note.id, velocity), channel), time)
     constructor(eventType: EventType, time: Int = 0, vararg data: Byte, channel: Byte = 0)
             : this(Event(eventType, data, channel), time)

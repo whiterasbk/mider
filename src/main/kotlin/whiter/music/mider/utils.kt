@@ -153,8 +153,11 @@ inline fun <reified T : Any> Any?.cast(): T {
 }
 
 
-// todo 和dsl里的方法合并
+// todo 和 dsl 里的方法合并
 
+/**
+ * 获取音符对应的 code 偏移
+ */
 fun noteBaseOffset(note: String): Int {
     return when (note) {
         "C", "#B" -> 0
@@ -173,6 +176,9 @@ fun noteBaseOffset(note: String): Int {
     }
 }
 
+/**
+ * 根据 code 获取音符名称, 只能返回升号
+ */
 fun noteNameFromCode(code: Int): String {
     return when(code % 12) {
         0 -> "C"
@@ -191,9 +197,28 @@ fun noteNameFromCode(code: Int): String {
     }
 }
 
-fun charCount(str: CharSequence, char: Char): Int {
-    return str.filter { it == char }.count()
+/**
+ * 根据 code 获取音符名称, 只能返回降号
+ */
+fun noteNameFromCodeFlat(code: Int): String {
+    return when(code % 12) {
+        0 -> "C"
+        1 -> "bD"
+        2 -> "D"
+        3 -> "bE"
+        4 -> "E"
+        5 -> "F"
+        6 -> "bG"
+        7 -> "G"
+        8 -> "bA"
+        9 -> "A"
+        10 -> "bB"
+        11 -> "B"
+        else -> throw Exception("no such note code: $code")
+    }
 }
+
+fun charCount(str: CharSequence, char: Char): Int = str.filter { it == char }.count()
 
 fun deriveInterval(index: Int, scale: Array<Int> = arrayOf(2, 2, 1, 2, 2, 2, 1)): Int {
     var sum = 0
