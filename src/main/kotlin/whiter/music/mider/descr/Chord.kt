@@ -1,6 +1,13 @@
 package whiter.music.mider.descr
 
+enum class ArpeggioType {
+    None, Ascending, Downward
+}
+
 class Chord(vararg firstNotes: Note) : InMusicScore {
+
+    var attach: ChordAttach? = null
+    var arpeggio: ArpeggioType = ArpeggioType.None
 
     init {
         if (firstNotes.isEmpty()) throw Exception("a chord needs notes to buildup")
@@ -20,7 +27,9 @@ class Chord(vararg firstNotes: Note) : InMusicScore {
             cloneNotes += it.clone()
         }
 
-        return Chord(*cloneNotes.toTypedArray())
+        val one = Chord(*cloneNotes.toTypedArray())
+        one.attach = attach
+        return one
     }
 
     fun last() = notes.last()
@@ -29,7 +38,7 @@ class Chord(vararg firstNotes: Note) : InMusicScore {
         notes += note
     }
 
-    override fun toString(): String {
-        return "Chord: " + notes.joinToString(" ")
-    }
+    override fun toString(): String = "Chord: " + notes.joinToString(" ")
 }
+
+class ChordAttach(alter: Int = 0, lyric: String? = null) : Attach(alter, lyric)

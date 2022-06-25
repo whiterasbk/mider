@@ -1,5 +1,6 @@
 package whiter.music.mider.descr
 
+import kotlin.math.abs
 import kotlin.math.pow
 
 interface InMusicScore: Cloneable {
@@ -34,5 +35,21 @@ interface InMusicScore: Cloneable {
         }
 
         override fun toString(): String = value.toString()
+
+        operator fun plus(duration: DurationDescribe): DurationDescribe {
+            return DurationDescribe(bar + duration.bar, dot + duration.dot, default)
+        }
+    }
+
+
+
+    operator fun timesAssign(times: Int) {
+        if (times > 0) {
+            for (i in 0 until times)
+                duration.double
+        } else if (times < 0) {
+            for (i in 0 until abs(times))
+                duration.halve
+        }
     }
 }

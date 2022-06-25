@@ -1,5 +1,6 @@
 package whiter.music.mider
 
+import java.lang.StringBuilder
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -143,7 +144,7 @@ class ByteArrayWrap(private vararg val array: Byte) {
     override fun toString(): String = array.toList().toString()
 }
 
-@ExperimentalContracts
+@OptIn(ExperimentalContracts::class)
 @JvmSynthetic
 inline fun <reified T : Any> Any?.cast(): T {
     contract {
@@ -262,4 +263,41 @@ fun previousNoteIntervalInMajorScale(code: Int): Int {
         11 -> 2 // B
         else -> 2
     }
+}
+
+// 求给定 index 之后
+fun String.nextOnlyInt(index: Int, maxBit: Int): Int {
+    var sum = 0
+    var count = 0
+    for (i in 1 .. maxBit) {
+        if (index + i < length) {
+            val nextChar = this[index + i]
+            if (nextChar in '0'..'9') {
+                sum = sum * 10 + (nextChar.code - 48)
+                count ++
+            } else break
+        }
+    }
+
+    if (count == 0) throw Exception("there's no integer found after char '${this[index]}', index: $index or maxCount < 1")
+
+    return sum
+}
+
+fun String.nextGivenChar(index: Int, char: Char, maxBit: Int): String {
+    var sb = StringBuilder()
+    var count = 0
+    for (i in 1 .. maxBit) {
+        if (index + i < length) {
+            val nextChar = this[index + i]
+            if (nextChar != char) {
+                sb.append(nextChar)
+                count ++
+            } else break
+        }
+    }
+
+    if (count == 0) throw Exception("there's no char '$char' found after char '${this[index]}', index: $index or maxCount < 1")
+
+    return sb.toString()
 }

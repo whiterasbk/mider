@@ -1,6 +1,13 @@
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import whiter.music.mider.cast
+import whiter.music.mider.code.toInMusicScoreList
+import whiter.music.mider.descr.Appoggiatura
+import whiter.music.mider.descr.ArpeggioType
+import whiter.music.mider.descr.Chord
+import whiter.music.mider.descr.Note
+import whiter.music.mider.nextGivenChar
 import whiter.music.mider.xml.*
 import java.io.File
 
@@ -162,6 +169,197 @@ class TestsXml {
         }.save(path)
 
         assert(File(path).exists())
+    }
+}
+
+class TestMiderCodeParser {
+    @Test
+    @DisplayName("testNormal")
+    fun testNormal() {
+        var list = toInMusicScoreList("cdefgabCDEFGAB", useMacro = false)
+        val duration = 0.25
+        val velocity = 100
+        val expected = listOf(
+            "[60=C4|$duration|$velocity]",
+            "[62=D4|$duration|$velocity]",
+            "[64=E4|$duration|$velocity]",
+            "[65=F4|$duration|$velocity]",
+            "[67=G4|$duration|$velocity]",
+            "[69=A4|$duration|$velocity]",
+            "[71=B4|$duration|$velocity]",
+            "[72=C5|$duration|$velocity]",
+            "[74=D5|$duration|$velocity]",
+            "[76=E5|$duration|$velocity]",
+            "[77=F5|$duration|$velocity]",
+            "[79=G5|$duration|$velocity]",
+            "[81=A5|$duration|$velocity]",
+            "[83=B5|$duration|$velocity]"
+        ).joinToString("\n")
+
+        assertEquals(expected, list.joinToString("\n"))
+
+        list = toInMusicScoreList("1234567 1i2i3i4i5i6↑7↑", isStave = false, useMacro = false)
+
+        assertEquals(expected, list.joinToString("\n"))
+    }
+
+    @Test
+    @DisplayName("testFlatAndSharp")
+    fun testFlatAndSharp() {
+        var list = toInMusicScoreList("#c\$d♭e♮fga\"b'", useMacro = false)
+        val duration = 0.25
+        val velocity = 100
+        val expected = listOf(
+            "[61=#C4|$duration|$velocity]",
+            "[61=#C4|$duration|$velocity]",
+            "[63=#D4|$duration|$velocity]",
+            "[65=F4|$duration|$velocity]",
+            "[67=G4|$duration|$velocity]",
+            "[70=#A4|$duration|$velocity]",
+            "[70=#A4|$duration|$velocity]"
+        ).joinToString("\n")
+
+        assertEquals(expected, list.joinToString("\n"))
+        assert(list[3].cast<Note>().isNature)
+
+        list = toInMusicScoreList("#1$2b3&45♯67'", isStave = false, useMacro = false)
+
+        assertEquals(expected, list.joinToString("\n"))
+        assert(list[3].cast<Note>().isNature)
+    }
+
+    @Test
+    @DisplayName("testAppoggiatura")
+    fun testAppoggiatura() {
+        val list = toInMusicScoreList("a;d++ a++;d a%50;d%20 a;dt++", useMacro = false)
+        val duration = 0.25
+        val velocity = 100
+
+        val group1 = listOf(
+            "[69=A4|${duration}|$velocity]",
+            "[62=D4|${duration*4}|$velocity]"
+        )
+
+        val group2 = listOf(
+            "[69=A4|${duration*4}|$velocity]",
+            "[62=D4|${duration}|$velocity]"
+        )
+
+        val group3 = listOf(
+            "[69=A4|${duration}|${velocity / 2}]",
+            "[62=D4|${duration}|${velocity / 5}]"
+        )
+
+        assertEquals(listOf(
+            "Appoggiatura: ${group1.joinToString(" ")}",
+            "Appoggiatura: ${group2.joinToString(" ")}",
+            "Appoggiatura: ${group3.joinToString(" ")}",
+            "Appoggiatura: ${group1.joinToString(" ")}",
+        ).joinToString("\n"), list.joinToString("\n"))
+
+        assert(list[0].cast<Appoggiatura>().isFront)
+        assert(list[1].cast<Appoggiatura>().isFront)
+        assert(list[2].cast<Appoggiatura>().isFront)
+        assert(!list[3].cast<Appoggiatura>().isFront)
+    }
+
+    @Test
+    @DisplayName("testChord")
+    fun testChord() {
+        var list = toInMusicScoreList(
+            "a++:d:c " +
+                "a:d:c++ " +
+                "a%50:d%20:c%20 " +
+                "a:d\":c' " +
+                "a:m:m " +
+                "a:d↑:c↑ " +
+                "a:d:c↟" +
+                "a:d:c↡",
+            useMacro = false)
+        val duration = 0.25
+        val velocity = 100
+
+        val group0 = listOf(
+            "[69=A4|$duration|$velocity]",
+            "[62=D4|$duration|$velocity]",
+            "[60=C4|$duration|$velocity]"
+        )
+
+        val group1 = listOf(
+            "[69=A4|${duration*4}|$velocity]",
+            "[62=D4|${duration}|$velocity]",
+            "[60=C4|${duration}|$velocity]"
+        )
+
+        val group4 = listOf(
+            "[69=A4|$duration|${velocity / 2}]",
+            "[62=D4|$duration|${velocity / 5}]",
+            "[60=C4|$duration|${velocity / 5}]"
+        )
+
+        val group5 = listOf(
+            "[69=A4|$duration|$velocity]",
+            "[63=#D4|$duration|$velocity]",
+            "[59=B3|$duration|$velocity]"
+        )
+
+        val group6 = listOf(
+            "[69=A4|$duration|$velocity]",
+            "[72=C5|$duration|$velocity]",
+            "[76=E5|$duration|$velocity]"
+        )
+
+        val group7 = listOf(
+            "[69=A4|$duration|$velocity]",
+            "[74=D5|$duration|$velocity]",
+            "[72=C5|$duration|$velocity]"
+        )
+        
+        fun assert() {
+            assertEquals(listOf(
+                "Chord: ${group1.joinToString(" ")}",
+                "Chord: ${group1.joinToString(" ")}",
+                "Chord: ${group4.joinToString(" ")}",
+                "Chord: ${group5.joinToString(" ")}",
+                "Chord: ${group6.joinToString(" ")}",
+                "Chord: ${group7.joinToString(" ")}",
+                "Chord: ${group0.joinToString(" ")}",
+                "Chord: ${group0.joinToString(" ")}",
+            ).joinToString("\n"), list.joinToString("\n"))
+
+            assertEquals(list[0].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[1].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[2].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[3].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[4].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[5].cast<Chord>().arpeggio, ArpeggioType.None)
+            assertEquals(list[6].cast<Chord>().arpeggio, ArpeggioType.Ascending)
+            assertEquals(list[7].cast<Chord>().arpeggio, ArpeggioType.Downward)
+        }
+
+        assert()
+        list = toInMusicScoreList(
+                "6++:2:1 " +
+                    "6:2:1++ " +
+                    "6%50:2%20:1%20 " +
+                    "6:2\":1' " +
+                    "6:m:m " +
+                    "6:2↑:1↑ " +
+                    "6:2:1↟" +
+                    "6:2:1↡",
+            useMacro = false, isStave = false)
+        
+        assert()
+    }
+}
+
+class TestUtils {
+    @Test
+    fun testNextGivenChar() {
+        val insert = "you"
+        val string = "how did [$insert] mom?"
+        val result = string.nextGivenChar(string.indexOf('['), ']', 3)
+        assertEquals(insert, result)
     }
 }
 

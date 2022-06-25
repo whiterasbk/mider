@@ -12,10 +12,10 @@ import whiter.music.mider.previousNoteIntervalInMajorScale
 class Note(
     var code: Int,
     override val duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe(),
-    val velocity: Int = 100,
+    var velocity: Int = 100,
     var isNature: Boolean = false, // 是否添加了还原符号
     var attach: NoteAttach? = null
-) : InMusicScore {
+) : InMusicScore, CanBeGlissed {
 
     constructor(name: String, pitch: Int = 4, duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe(), velocity: Int = 100)
             : this(noteBaseOffset (name) + (pitch + 1) * 12, duration, velocity)
@@ -59,7 +59,7 @@ class Note(
     }
 
     override fun clone(): Note {
-        return Note(code, duration.clone())
+        return Note(code, duration.clone(), velocity, isNature, attach)
     }
 
     override fun toString(): String = "[$code=${noteNameFromCode(code)}$pitch|$duration|$velocity]"
@@ -69,4 +69,6 @@ class Note(
  * 音符上的附加信息
  * @param alter 正数为升负数为降
  */
-data class NoteAttach(val alter: Int = 0)
+open class Attach(val alter: Int = 0, val lyric: String? = null)
+
+class NoteAttach(alter: Int = 0, lyric: String? = null) : Attach(alter, lyric)

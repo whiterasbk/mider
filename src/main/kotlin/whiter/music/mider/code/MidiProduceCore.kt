@@ -23,8 +23,6 @@ data class ProduceCoreResult(
     val logs: MutableList<String> = ArrayList()
 )
 
-
-@ExperimentalContracts
 fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodeParserConfiguration()): ProduceCoreResult {
 
     val noteLists = msg.split(startRegex).toMutableList()
@@ -41,6 +39,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
         // todo 怪, 应该每条轨道都能设置才对
 
         noteLists.forEachIndexed { index, content ->
+
             miderDSL.track {
                 var mode = ""
                 var defaultPitch = 4
@@ -113,8 +112,9 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                     if (stander.isNotBlank()) !stander
                 }
 
-                logs.add("track: ${index + 1}")
+                logs.add("track: ${index + 1}") //; debug()
             }
+
         }
     }
 
