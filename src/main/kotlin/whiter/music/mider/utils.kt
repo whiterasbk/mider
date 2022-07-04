@@ -285,7 +285,7 @@ fun String.nextOnlyInt(index: Int, maxBit: Int): Int {
 }
 
 fun String.nextGivenChar(index: Int, char: Char, maxBit: Int): String {
-    var sb = StringBuilder()
+    val sb = StringBuilder()
     var count = 0
     for (i in 1 .. maxBit) {
         if (index + i < length) {

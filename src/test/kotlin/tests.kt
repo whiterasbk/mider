@@ -1,15 +1,16 @@
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import whiter.music.mider.cast
+import whiter.music.mider.*
 import whiter.music.mider.code.toInMusicScoreList
-import whiter.music.mider.descr.Appoggiatura
-import whiter.music.mider.descr.ArpeggioType
-import whiter.music.mider.descr.Chord
-import whiter.music.mider.descr.Note
-import whiter.music.mider.nextGivenChar
+import whiter.music.mider.descr.*
+import whiter.music.mider.dsl.InMusicScoreContainer
+import whiter.music.mider.dsl.MiderDSLv2
+import whiter.music.mider.noteNameFromCode
 import whiter.music.mider.xml.*
 import java.io.File
+import kotlin.math.abs
 
 class TestsXml {
     @Test
@@ -172,43 +173,57 @@ class TestsXml {
     }
 }
 
-class TestMiderCodeParser {
+class TestMiderCodeParser : ABTestInMusicScore() {
+
     @Test
     @DisplayName("testNormal")
     fun testNormal() {
-        var list = toInMusicScoreList("cdefgabCDEFGAB", useMacro = false)
-        val duration = 0.25
-        val velocity = 100
+        val list = toInMusicScoreList("cdefgabCDEFGAB", useMacro = false)
         val expected = listOf(
-            "[60=C4|$duration|$velocity]",
-            "[62=D4|$duration|$velocity]",
-            "[64=E4|$duration|$velocity]",
-            "[65=F4|$duration|$velocity]",
-            "[67=G4|$duration|$velocity]",
-            "[69=A4|$duration|$velocity]",
-            "[71=B4|$duration|$velocity]",
-            "[72=C5|$duration|$velocity]",
-            "[74=D5|$duration|$velocity]",
-            "[76=E5|$duration|$velocity]",
-            "[77=F5|$duration|$velocity]",
-            "[79=G5|$duration|$velocity]",
-            "[81=A5|$duration|$velocity]",
-            "[83=B5|$duration|$velocity]"
+            generate("C"),
+            generate("D"),
+            generate("E"),
+            generate("F"),
+            generate("G"),
+            generate("A"),
+            generate("B"),
+            generate("C5"),
+            generate("D5"),
+            generate("E5"),
+            generate("F5"),
+            generate("G5"),
+            generate("A5"),
+            generate("B5")
         ).joinToString("\n")
 
         assertEquals(expected, list.joinToString("\n"))
 
-        list = toInMusicScoreList("1234567 1i2i3i4i5i6↑7↑", isStave = false, useMacro = false)
+        val numList = toInMusicScoreList("1234567 1i2i3i4i5i6↑7↑", isStave = false, useMacro = false)
+        assertEquals(list, numList)
+    }
 
-        assertEquals(expected, list.joinToString("\n"))
+    @Test
+    @DisplayName("testDuration")
+    fun testDuration() {
+        val list = toInMusicScoreList("c+d-e. c/3", useMacro = false)
+
+        assertEquals(listOf(
+            generate("C", duration * 2),
+            generate("D", duration / 2),
+            generate("E", duration * 1.5),
+            generate("C", duration / 3)
+        ).joinToString("\n"), list.joinToString("\n"))
+
+        assertEquals(3.0, list[3].duration.denominator)
+
+        val numList = toInMusicScoreList("1+2-3. 1/3", useMacro = false, isStave = false)
+        assertEquals(list, numList)
     }
 
     @Test
     @DisplayName("testFlatAndSharp")
     fun testFlatAndSharp() {
-        var list = toInMusicScoreList("#c\$d♭e♮fga\"b'", useMacro = false)
-        val duration = 0.25
-        val velocity = 100
+        val list = toInMusicScoreList("#c\$d♭e♮fga\"b'", useMacro = false)
         val expected = listOf(
             "[61=#C4|$duration|$velocity]",
             "[61=#C4|$duration|$velocity]",
@@ -222,18 +237,15 @@ class TestMiderCodeParser {
         assertEquals(expected, list.joinToString("\n"))
         assert(list[3].cast<Note>().isNature)
 
-        list = toInMusicScoreList("#1$2b3&45♯67'", isStave = false, useMacro = false)
+        val numList = toInMusicScoreList("#1$2b3&45♯67'", isStave = false, useMacro = false)
 
-        assertEquals(expected, list.joinToString("\n"))
-        assert(list[3].cast<Note>().isNature)
+        assertEquals(list, numList)
     }
 
     @Test
     @DisplayName("testAppoggiatura")
     fun testAppoggiatura() {
         val list = toInMusicScoreList("a;d++ a++;d a%50;d%20 a;dt++", useMacro = false)
-        val duration = 0.25
-        val velocity = 100
 
         val group1 = listOf(
             "[69=A4|${duration}|$velocity]",
@@ -261,14 +273,18 @@ class TestMiderCodeParser {
         assert(list[1].cast<Appoggiatura>().isFront)
         assert(list[2].cast<Appoggiatura>().isFront)
         assert(!list[3].cast<Appoggiatura>().isFront)
+
+        val numList = toInMusicScoreList("6;2++ 6++;2 6%50;2%20 6;2t++", useMacro = false, isStave = false)
+        assertEquals(list, numList)
     }
 
     @Test
     @DisplayName("testChord")
     fun testChord() {
-        var list = toInMusicScoreList(
-            "a++:d:c " +
-                "a:d:c++ " +
+        val list = toInMusicScoreList(
+            "a++:d:c" +
+                "a:d--:c" +
+                "a:d:c++" +
                 "a%50:d%20:c%20 " +
                 "a:d\":c' " +
                 "a:m:m " +
@@ -276,8 +292,6 @@ class TestMiderCodeParser {
                 "a:d:c↟" +
                 "a:d:c↡",
             useMacro = false)
-        val duration = 0.25
-        val velocity = 100
 
         val group0 = listOf(
             "[69=A4|$duration|$velocity]",
@@ -289,6 +303,18 @@ class TestMiderCodeParser {
             "[69=A4|${duration*4}|$velocity]",
             "[62=D4|${duration}|$velocity]",
             "[60=C4|${duration}|$velocity]"
+        )
+
+        val group2 = listOf(
+            "[69=A4|${duration}|$velocity]",
+            "[62=D4|${duration/4}|$velocity]",
+            "[60=C4|${duration}|$velocity]"
+        )
+
+        val group3 = listOf(
+            "[69=A4|${duration}|$velocity]",
+            "[62=D4|${duration}|$velocity]",
+            "[60=C4|${duration*4}|$velocity]"
         )
 
         val group4 = listOf(
@@ -314,42 +340,67 @@ class TestMiderCodeParser {
             "[74=D5|$duration|$velocity]",
             "[72=C5|$duration|$velocity]"
         )
-        
-        fun assert() {
-            assertEquals(listOf(
-                "Chord: ${group1.joinToString(" ")}",
-                "Chord: ${group1.joinToString(" ")}",
-                "Chord: ${group4.joinToString(" ")}",
-                "Chord: ${group5.joinToString(" ")}",
-                "Chord: ${group6.joinToString(" ")}",
-                "Chord: ${group7.joinToString(" ")}",
-                "Chord: ${group0.joinToString(" ")}",
-                "Chord: ${group0.joinToString(" ")}",
-            ).joinToString("\n"), list.joinToString("\n"))
 
-            assertEquals(list[0].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[1].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[2].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[3].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[4].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[5].cast<Chord>().arpeggio, ArpeggioType.None)
-            assertEquals(list[6].cast<Chord>().arpeggio, ArpeggioType.Ascending)
-            assertEquals(list[7].cast<Chord>().arpeggio, ArpeggioType.Downward)
-        }
+        assertEquals(listOf(
+            "Chord: ${group1.joinToString(" ")}",
+            "Chord: ${group2.joinToString(" ")}",
+            "Chord: ${group3.joinToString(" ")}",
+            "Chord: ${group4.joinToString(" ")}",
+            "Chord: ${group5.joinToString(" ")}",
+            "Chord: ${group6.joinToString(" ")}",
+            "Chord: ${group7.joinToString(" ")}",
+            "Chord: ${group0.joinToString(" ")}",
+            "Chord: ${group0.joinToString(" ")}",
+        ).joinToString("\n"), list.joinToString("\n"))
 
-        assert()
-        list = toInMusicScoreList(
+        assertEquals(list[0].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[1].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[2].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[3].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[4].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[5].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[6].cast<Chord>().arpeggio, ArpeggioType.None)
+        assertEquals(list[7].cast<Chord>().arpeggio, ArpeggioType.Ascending)
+        assertEquals(list[8].cast<Chord>().arpeggio, ArpeggioType.Downward)
+
+        val numList = toInMusicScoreList(
                 "6++:2:1 " +
+                    "6:2--:1 " +
                     "6:2:1++ " +
                     "6%50:2%20:1%20 " +
                     "6:2\":1' " +
                     "6:m:m " +
                     "6:2↑:1↑ " +
-                    "6:2:1↟" +
-                    "6:2:1↡",
+                    "6:2:1↟ " +
+                    "6:2:1↡ ",
             useMacro = false, isStave = false)
-        
-        assert()
+
+        assertEquals(list, numList)
+    }
+
+    @Test
+    @DisplayName("testGlissando")
+    fun testGlissando() {
+        val list = toInMusicScoreList("c=d c≈d↑ c--=d++=e. #c=\$d=e' c%50=d%50=e%20", useMacro = false)
+
+        val group = listOf(
+            "Glissando: [60=C4|$duration|$velocity] [62=D4|$duration|$velocity]",
+            "Glissando: [60=C4|$duration|$velocity] [74=D5|$duration|$velocity]",
+            "Glissando: [60=C4|${duration/4}|$velocity] [62=D4|${duration*4}|$velocity] [64=E4|${duration*1.5}|$velocity]",
+            "Glissando: [61=#C4|$duration|$velocity] [61=#C4|$duration|$velocity] [63=#D4|$duration|$velocity]",
+            "Glissando: [60=C4|$duration|${velocity/2}] [62=D4|$duration|${velocity/2}] [64=E4|$duration|${velocity/5}]"
+        )
+
+        assertEquals(group.joinToString("\n"), list.joinToString("\n"))
+        assert(!list[0].cast<Glissando>().isWave)
+        assert(list[1].cast<Glissando>().isWave)
+        assert(!list[2].cast<Glissando>().isWave)
+        assert(!list[3].cast<Glissando>().isWave)
+        assert(!list[4].cast<Glissando>().isWave)
+
+        val numList = toInMusicScoreList("1=2 1≈2i 1--=2++=3. #1=b2=3' 1%50=2%50=3%20", useMacro = false, isStave = false)
+
+        assertEquals(list, numList)
     }
 }
 
@@ -361,5 +412,329 @@ class TestUtils {
         val result = string.nextGivenChar(string.indexOf('['), ']', 3)
         assertEquals(insert, result)
     }
+
+    @Test
+    fun testNoteBaseOffset() {
+        assertArrayEquals(arrayOf(0, 2, 4, 5, 7, 9, 11), arrayOf(
+            noteBaseOffset("C"),
+            noteBaseOffset("D"),
+            noteBaseOffset("E"),
+            noteBaseOffset("F"),
+            noteBaseOffset("G"),
+            noteBaseOffset("A"),
+            noteBaseOffset("B")
+        ))
+    }
+
+    @Test
+    fun testNoteNameFromCode() {
+        val list = mutableListOf<String>()
+        for (i in 0..127) list += noteNameFromCode(i)
+
+        assertEquals((listOf(
+            "C", "#C", "D", "#D",
+            "E", "F", "#F", "G",
+            "#G", "A", "#A", "B"
+        ) * 11).removeLastAndReturnSelf(4), list)
+    }
+
+    @Test
+    fun testNoteNameFromCodeFlat() {
+        val list = mutableListOf<String>()
+        for (i in 0..127) list += noteNameFromCodeFlat(i)
+
+        assertEquals((listOf(
+            "C", "bD", "D", "bE",
+            "E", "F", "bG", "G",
+            "bA", "A", "bB", "B"
+        ) * 11).removeLastAndReturnSelf(4), list)
+    }
 }
+
+class TestMiderDsl : ABTestInMusicScore() {
+    @Test
+    fun testBasic() {
+        val dsl = dsl {
+            A/2; C*2; C%67; B+1; C-1; D[3,.5]; E.dot; +F; -G;
+            val p by D into "p"
+            p
+            G["ai2"]
+            !C
+        }
+
+        assertEquals(listOf(
+            generate("A", duration/2),
+            generate("C", duration*2),
+            generate("C", velocity = 67),
+            generate("B5"),
+            generate("C3"),
+            generate("D3", duration*2),
+            generate("E", duration*1.5),
+            generate("#F"),
+            generate("#F"),
+            generate("D"),
+            generate("G"),
+            generate("C")
+        ).jts(), dsl.jts())
+
+        assert(dsl[-2].cast<Note>().attach?.lyric == "ai2")
+        assert(dsl.last().cast<Note>().isNature)
+    }
+
+    @Test
+    fun testChord() {
+        val dsl = dsl {
+            C+E+G; A; A+D +1; A+E+F - F
+            (C+D)*2; (C+D)/2
+            (C+E+G)/E
+            val a by C+E+G into "a"
+            a
+
+            a.sus
+            a.sus2
+
+            a - 1
+            a*2
+        }
+
+        assertEquals(listOf(
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+            ).jts(" "),
+            generate("A"),
+            "Chord: " + listOf(
+                generate("A5"),
+                generate("D5")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("A"),
+                generate("E")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C", duration*2),
+                generate("D")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C", duration/2),
+                generate("D")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C5"),
+                generate("E"),
+                generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("F"),
+                generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("D"),
+                generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C3"),
+                generate("E3"),
+                generate("G3"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C", duration * 2),
+                generate("E"),
+                generate("G"),
+            ).jts(" ")
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testGenerateChord() {
+        val dsl = dsl {
+            A triad majorChord
+            C seventh majorChord
+            C add9 majorChord
+            C ninths majorChord
+            C ninths minorChord
+        }
+
+        assertEquals(listOf(
+            "Chord: " + listOf(
+                generate("A"),
+                generate("#C5"),
+                generate("E5")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+                generate("B")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+                generate("D5")
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+                generate("B"),
+                generate("D5"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("#D"),
+                generate("G"),
+                generate("#A"),
+                generate("D5")
+            ).jts(" ")
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testScale() {
+        val dsl = dsl {
+            C..B
+            C..B under majorScale
+            C..F step 2
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("#C"),
+            generate("D"),
+            generate("#D"),
+            generate("E"),
+            generate("F"),
+            generate("#F"),
+            generate("G"),
+            generate("#G"),
+            generate("A"),
+            generate("#A"),
+            generate("B"),
+
+            generate("C"),
+            generate("D"),
+            generate("E"),
+            generate("F"),
+            generate("G"),
+            generate("A"),
+            generate("B"),
+
+            generate("C"),
+            generate("D"),
+            generate("E"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testGlissando() {
+        val dsl = dsl {
+            C gliss E gliss D[5]
+            (C gliss G).wave
+        }
+
+        assertEquals(listOf(
+          "Glissando: " + listOf(
+              generate("C"),
+              generate("E"),
+              generate("D5"),
+          ).jts(" "),
+          "Glissando: " + listOf(
+              generate("C"),
+              generate("G")
+          ).jts(" "),
+        ).jts(), dsl.jts())
+
+        assert(dsl.container.mainList.last().cast<Glissando>().isWave)
+    }
+
+    @Test
+    fun testAppoggiatura() {
+        val dsl = dsl {
+            C appoggiatura E+1
+            (D appoggiatura A).back
+        }
+
+        assertEquals(listOf(
+          "Appoggiatura: " + listOf(
+              generate("C"),
+              generate("E5")
+          ).jts(" "),
+          "Appoggiatura: " + listOf(
+              generate("D"),
+              generate("A")
+          ).jts(" "),
+        ).jts(), dsl.jts())
+
+        assert(!dsl.container.mainList.last().cast<Appoggiatura>().isFront)
+    }
+
+    @Test
+    fun testRest() {
+        val dsl = dsl {
+            O; O/2; O*2
+            O + A
+        }
+
+        assertEquals(listOf(
+            "[Rest|$duration]",
+            "[Rest|${duration/2}]",
+            "[Rest|${duration*2}]",
+            "[Rest|$duration]",
+            generate("A")
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testInserted() {
+        var list: MutableList<InMusicScore>? = null
+        val dsl = dsl {
+            A
+            list = inserted {
+                B
+            }
+            C
+        }
+
+        assertEquals(listOf(
+            generate("A"),
+            generate("C")
+        ).jts(), dsl.jts())
+
+        assertEquals(listOf(
+            generate("B"),
+        ).jts(), list?.jts())
+    }
+
+    fun dsl(block : MiderDSLv2.() -> Unit): MiderDSLv2 {
+        val ret = MiderDSLv2()
+        ret.block()
+        return ret
+    }
+}
+
+abstract class ABTestInMusicScore {
+    protected val duration: Double = 0.25
+    protected val velocity: Int = 100
+    protected fun generate(name: String, duration: Double = this.duration, pitch: Int = 4, velocity: Int = this.velocity): String = generateNoteString(name, duration, pitch, velocity)
+    protected fun List<*>.jts(separator: String = "\n"): String = joinToString(separator)
+    protected fun InMusicScoreContainer.jts(separator: String = "\n") = mainList.jts(separator)
+    protected fun MiderDSLv2.jts(separator: String = "\n") = container.jts(separator)
+    protected fun MiderDSLv2.last() = container.mainList.last()
+    protected operator fun MiderDSLv2.get(index: Int): InMusicScore {
+        return if (index >= 0)
+            container.mainList[index]
+        else
+            container.mainList[container.mainList.size + index]
+    }
+}
+
 

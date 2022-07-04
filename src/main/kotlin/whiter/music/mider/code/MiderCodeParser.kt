@@ -3,12 +3,11 @@ package whiter.music.mider.code
 import whiter.music.mider.*
 import whiter.music.mider.descr.*
 import whiter.music.mider.descr.Note
-import whiter.music.mider.xml.Node
+import whiter.music.mider.xml.DurationType
 import java.lang.StringBuilder
 import java.util.*
 import java.io.File
 import java.net.URL
-import kotlin.contracts.ExperimentalContracts
 
 fun toMiderStanderNoteString(list: List<InMusicScore>): String {
     val result = mutableListOf<SimpleNoteDescriber>()
@@ -209,7 +208,7 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
     return result.toString()
 }
 
-fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, durationDefault: Double = .25, isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
 
     val list = mutableListOf<InMusicScore>()
     val doAfter = mutableListOf<(Char)->Unit>()
@@ -242,11 +241,10 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
 
         if (skipper == 0) {
             when (char) {
-
                 in 'a'..'g' -> {
-                    if (isStave)
-                        list += Note(char, pitch = pitch)
-                    else if (char == 'b') {
+                    if (isStave) {
+                        list += Note(char, pitch, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                    } else if (char == 'b') {
                         doAfter += {
                             (list.last() as? Note)?.flap()
                         }
@@ -254,44 +252,45 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
                 }
 
                 in 'A'..'G' -> {
-                    if (isStave)
-                        list += Note(char, pitch = pitch + 1)
+                    if (isStave) {
+                        list += Note(char, pitch + 1, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                    }
                 }
 
                 in '0'..'9' -> {
                     if (isStave) {
                         checkSuffixModifyAvailable()
-                        if (list.last() is Note)
-                            list.last().cast<Note>().pitch = char.code - 48
-                        else if (list.last() is Chord)
-                            list.last().cast<Chord>().last().pitch = char.code - 48
+                        if (list.last() is CanModifyTargetPitch)
+                            list.last().cast<CanModifyTargetPitch>().modifyTargetPitch(char.code - 48)
                     } else if (char in '1'..'7') {
-                        val note = Note('C', pitch = pitch)
-                        note.sharp(deriveInterval(char.code - 49))
+                        val note = Note('C', pitch, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                        note.up(deriveInterval(char.code - 49))
                         list += note
                     } else if (char == '0') {
                         doAfter.clear()
-                        list += Rest()
+                        list += Rest(InMusicScore.DurationDescribe(default = durationDefault))
                     }
                 }
 
                 'O' -> {
                     doAfter.clear()
-                    list += Rest().let { it.duration.double; it }
+                    list += Rest(InMusicScore.DurationDescribe(default = durationDefault)).let { it.duration.double; it }
                 }
 
                 'o' -> {
                     doAfter.clear()
-                    list += Rest()
+                    list += Rest(InMusicScore.DurationDescribe(default = durationDefault))
                 }
 
                 't' -> {
+                    checkSuffixModifyAvailable()
                     if (list.last() is Appoggiatura) {
                         list.last().cast<Appoggiatura>().isFront = false
                     }
                 }
 
                 '~' -> {
+                    checkSuffixModifyAvailable()
                     list += list.last().clone()
                 }
 
@@ -312,10 +311,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
                         cloneAndModify(4)
                     } else {
                         checkSuffixModifyAvailable()
-                        if (list.last() is Note)
-                            list.last().cast<Note>() += 1
-                        else if (list.last() is Chord)
-                            list.last().cast<Chord>().last() += 1
+                        if (list.last() is HasOctave) list.last().cast<HasOctave>().higherOctave()
                     }
                 }
 
@@ -333,10 +329,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
 
                 '↑', '∧' -> {
                     checkSuffixModifyAvailable()
-                    if (list.last() is Note)
-                        list.last().cast<Note>() += 1
-                    else if (list.last() is Chord)
-                        list.last().cast<Chord>().last() += 1
+                    if (list.last() is HasOctave) list.last().cast<HasOctave>().higherOctave()
                 }
 
                 '!' -> {
@@ -344,24 +337,18 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
                         cloneAndModify(4, false)
                     } else {
                         checkSuffixModifyAvailable()
-                        if (list.last() is Note)
-                            list.last().cast<Note>() -= 1
-                        else if (list.last() is Chord)
-                            list.last().cast<Chord>().last() -= 1
+                        if (list.last() is HasOctave) list.last().cast<HasOctave>().lowerOctave()
                     }
                 }
 
                 '↓', '∨' -> {
                     checkSuffixModifyAvailable()
-                    if (list.last() is Note)
-                        list.last().cast<Note>() -= 1
-                    else if (list.last() is Chord)
-                        list.last().cast<Chord>().last() -= 1
+                    if (list.last() is HasOctave) list.last().cast<HasOctave>().lowerOctave()
                 }
 
                 '#', '♯' -> {
                     doAfter += {
-                        (list.last() as? Note)?.sharp()
+                        (list.last() as? HasFlatAndSharp)?.sharp()
                     }
                 }
 
@@ -381,18 +368,12 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
 
                 '\'' -> {
                     checkSuffixModifyAvailable()
-                    if (list.last() is Note)
-                        list.last().cast<Note>().flap()
-                    else if (list.last() is Chord)
-                        list.last().cast<Chord>().last().flap()
+                    if (list.last() is HasFlatAndSharp) list.last().cast<HasFlatAndSharp>().flap()
                 }
 
                 '"' -> {
                     checkSuffixModifyAvailable()
-                    if (list.last() is Note)
-                        list.last().cast<Note>().sharp()
-                    else if (list.last() is Chord)
-                        list.last().cast<Chord>().last().sharp()
+                    if (list.last() is HasFlatAndSharp) list.last().cast<HasFlatAndSharp>().sharp()
                 }
 
                 ':' -> {
@@ -459,14 +440,10 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
                         in 0..9 -> 1
                         in 10..99 -> 2
                         in 100..127 -> 3
-                        else -> throw Exception("velocity should in 0 ~ 127")
+                        else -> throw Exception("given: $velocity, but velocity should in 0 ~ 127")
                     }
 
-                    when (list.last()) {
-                        is Note -> list.last().cast<Note>().velocity = velocity
-                        is Chord -> list.last().cast<Chord>().last().velocity = velocity
-                        is Appoggiatura -> list.last().cast<Appoggiatura>().second.velocity = velocity
-                    }
+                    if (list.last() is CanModifyTargetVelocity) list.last().cast<CanModifyTargetVelocity>().modifyTargetVelocity(velocity)
                 }
 
                 '[' -> {
@@ -493,34 +470,72 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
                     }
                 }
 
+                '=' -> {
+                    if (list.isEmpty()) throw Exception("the root is necessary for creating a glissando")
+
+                    val glissando: Glissando = if (list.last() is Note) {
+                        val g = Glissando(list.removeLast().cast())
+                        list += g
+                        g
+                    } else if (list.last() is Glissando) {
+                        list.last().cast()
+                    } else throw Exception("build glissando failed: unsupported type: ${list.last()}")
+
+                    doAfter += {
+                        glissando += list.removeLast().cast()
+                    }
+                }
+
+                '≈' -> {
+                    if (list.isEmpty()) throw Exception("the root is necessary for creating a glissando")
+
+                    val glissando: Glissando = if (list.last() is Note) {
+                        val g = Glissando(list.removeLast().cast())
+                        g.isWave = true
+                        list += g
+                        g
+                    } else if (list.last() is Glissando) {
+                        list.last().cast()
+                    } else throw Exception("build glissando failed: unsupported type: ${list.last()}")
+
+                    doAfter += {
+                        glissando += list.removeLast().cast()
+                    }
+                }
+
                 '+' -> {
                     checkSuffixModifyAvailable()
-                    when (list.last()) {
-                        is Appoggiatura -> {
-                            list.last().cast<Appoggiatura>().second.duration.double
-                        }
-                        else -> list.last().duration.double
-                    }
+
+                    if (list.last() is CanModifyTargetDuration)
+                        list.last().cast<CanModifyTargetDuration>().getTargetDuration().double
+                    else list.last().duration.double
                 }
 
                 '-' -> {
                     checkSuffixModifyAvailable()
-                    when (list.last()) {
-                        is Appoggiatura -> {
-                            list.last().cast<Appoggiatura>().second.duration.halve
-                        }
-                        else -> list.last().duration.halve
-                    }
+
+                    if (list.last() is CanModifyTargetDuration)
+                        list.last().cast<CanModifyTargetDuration>().getTargetDuration().halve
+                    else list.last().duration.halve
                 }
 
                 '.' -> {
                     checkSuffixModifyAvailable()
-                    when (list.last()) {
-                        is Appoggiatura -> {
-                            list.last().cast<Appoggiatura>().second.duration.point
-                        }
-                        else -> list.last().duration.point
-                    }
+
+                    if (list.last() is CanModifyTargetDuration)
+                        list.last().cast<CanModifyTargetDuration>().getTargetDuration().point
+                    else list.last().duration.point
+                }
+
+                '/' -> {
+                    checkSuffixModifyAvailable()
+                    val denominator = afterMacro.nextOnlyInt(index, 1).toDouble()
+                    skipper = 1
+
+                    if (list.last() is CanModifyTargetDuration)
+                        list.last().cast<CanModifyTargetDuration>().getTargetDuration().denominator = denominator
+                    else
+                        list.last().duration.denominator = denominator
                 }
             }
 
@@ -542,7 +557,6 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, isStave: Boolean = true, use
 
         } else if (skipper > 0) {
             skipper --
-            // println("skip: $char, $index")
         } else throw Exception("skipper should not be negative")
     }
 
