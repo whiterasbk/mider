@@ -6,9 +6,9 @@ class Scale(vararg inputNotes: Note) : InMusicScore, NoteContainer {
 
     companion object {
         fun generate(from: Note, to: Note): Scale {
-            if (from.code > to.code) throw Exception("from.code has to > to.code")
+            if (from.actualCode > to.actualCode) throw Exception("from.code has to > to.code")
             val list = mutableListOf<Note>()
-            for (i in from.code..to.code) {
+            for (i in from.actualCode..to.actualCode) {
                 list += Note(i, from.duration, from.velocity)
             }
             return Scale(*list.toTypedArray())
@@ -42,7 +42,7 @@ class Scale(vararg inputNotes: Note) : InMusicScore, NoteContainer {
         val last = notes.last()
 
         val list = mutableListOf<Note>()
-        for (i in first.code..last.code step number) {
+        for (i in first.actualCode..last.actualCode step number) {
             list += Note(i, first.duration, first.velocity)
         }
         notes.clear()
@@ -51,10 +51,10 @@ class Scale(vararg inputNotes: Note) : InMusicScore, NoteContainer {
 
     @Tested
     infix fun under(mode: Array<Int>) {
-        var i = notes.first().code
+        var i = notes.first().actualCode
         var loopc = 0
         val list = mutableListOf<Note>()
-        while (i <= notes.last().code) {
+        while (i <= notes.last().actualCode) {
             list += Note(i, notes.first().duration, notes.first().velocity)
             i += mode[loopc % mode.size]
             loopc++

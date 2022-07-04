@@ -1,3 +1,4 @@
+import whiter.music.mider.charCount
 import whiter.music.mider.descr.*
 
 fun main(args: Array<String>) {

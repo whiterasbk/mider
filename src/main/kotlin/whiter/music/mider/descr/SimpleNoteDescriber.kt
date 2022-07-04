@@ -6,7 +6,7 @@ data class SimpleNoteDescriber(val name: String, var duration: Double, var pitch
 
     companion object {
         fun fromNote(note: Note): SimpleNoteDescriber {
-            return SimpleNoteDescriber(getNoteName(note), note.duration.value, note.pitch)
+            return SimpleNoteDescriber(getNoteName(note), note.duration.value, note.actualPitch)
         }
 
         fun fromRest(rest: Rest): SimpleNoteDescriber {
@@ -15,8 +15,8 @@ data class SimpleNoteDescriber(val name: String, var duration: Double, var pitch
 
         private fun getNoteName(note: Note): String {
             return if (note.isNature) {
-                "!" + noteNameFromCode(note.code).replace("#", "")
-            } else noteNameFromCode(note.code)
+                "!" + noteNameFromCode(note.actualCode).replace("#", "")
+            } else noteNameFromCode(note.actualCode)
         }
     }
 

@@ -8,8 +8,8 @@ fun List<InMusicScore>.convert2MidiEvents(wholeTicks: Int, channel: Int) {
     forEach {
         when (it) {
             is Note -> {
-                msgs += noteOnMessage(it.code, 0, it.velocity, channel)
-                msgs += noteOffMessage(it.code, it.duration.value * wholeTicks, it.velocity, channel)
+                msgs += noteOnMessage(it.actualCode, 0, it.velocity, channel)
+                msgs += noteOffMessage(it.actualCode, it.duration.value * wholeTicks, it.velocity, channel)
             }
 
             is Chord -> {

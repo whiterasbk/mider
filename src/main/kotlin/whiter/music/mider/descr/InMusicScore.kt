@@ -15,7 +15,7 @@ interface InMusicScore: Cloneable {
     ): Cloneable {
 
         var multiple: Double = 1.0
-        val durationList = mutableListOf<DurationDescribe>()
+        var durationList = mutableListOf<DurationDescribe>()
         val baseValue: Double get() = default * 2.0.pow(bar) * 1.5.pow(dot)
         val value: Double get() = calc() + multiple / denominator * baseValue
 
@@ -54,7 +54,14 @@ interface InMusicScore: Cloneable {
         }
 
         public override fun clone(): DurationDescribe {
-            return DurationDescribe(bar, dot)
+            val describe = DurationDescribe(bar, dot, default, denominator)
+            val copy = mutableListOf<DurationDescribe>()
+            durationList.forEach {
+                copy += it.clone()
+            }
+            describe.durationList = copy
+            describe.multiple = multiple
+            return describe
         }
 
         override fun toString(): String = value.toString()

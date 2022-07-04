@@ -44,9 +44,9 @@ class Note(
             return actualCode / 12 - 1
         }
 
-    val name: String get() = noteNameFromCode(code)
+    val name: String get() = if (alter >= 0) noteNameFromCode(code) else noteNameFromCodeFlat(code)
 
-    val actualName: String get() = noteNameFromCode(actualCode)
+    val actualName: String get() = if (alter >= 0) noteNameFromCode(actualCode) else noteNameFromCodeFlat(actualCode)
 
     override fun modifyTargetVelocity(value: Int) {
         velocity = value

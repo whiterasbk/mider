@@ -187,7 +187,7 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
         val undetermined = buildStack.pop()
         val buildStackString = if (undetermined.contains('?')) {
             var tmp = undetermined
-            for (i in 0 until charCount(tmp, '?')) {
+            for (i in 0 until tmp.charCount('?')) {
                 // todo 调整执行顺序
                 val result = innerScopeExecute(buildStack.pop().toString().reversed())
                 tmp = tmp.replaceFirst(Regex("\\?"), result.reversed())

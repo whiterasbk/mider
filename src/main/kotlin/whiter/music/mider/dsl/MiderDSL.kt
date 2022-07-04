@@ -71,6 +71,7 @@ fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) 
 //            meta(MetaEventType.META_END_OF_TRACK)
 }
 
+@Deprecated("使用 MiderDSLv2 代替")
 class MiderDSL {
     val list = mutableListOf<note>()
     val otherTracks = mutableListOf<MiderDSL>()
@@ -1371,7 +1372,7 @@ class MiderDSL {
             "min", "minor" -> minor
             else -> major
         }
-        T(mv, block)
+        T (mv, block)
     }
 
     inner class I(val id: Byte) {

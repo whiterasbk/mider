@@ -7,10 +7,10 @@ import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
 import whiter.music.mider.dsl.InMusicScoreContainer
 import whiter.music.mider.dsl.MiderDSLv2
+import whiter.music.mider.dsl.play
 import whiter.music.mider.noteNameFromCode
 import whiter.music.mider.xml.*
 import java.io.File
-import kotlin.math.abs
 
 class TestsXml {
     @Test
@@ -455,7 +455,7 @@ class TestMiderDsl : ABTestInMusicScore() {
     @Test
     fun testBasic() {
         val dsl = dsl {
-            A/2; C*2; C%67; B+1; C-1; D[3,.5]; E.dot; +F; -G;
+            A/2; C*2; C%67; B+1; C-1; D[3,.5]; E.dot; +F; -G
             val p by D into "p"
             p
             G["ai2"]
@@ -696,22 +696,253 @@ class TestMiderDsl : ABTestInMusicScore() {
     @Test
     fun testInserted() {
         var list: MutableList<InMusicScore>? = null
+        var list2: MutableList<InMusicScore>? = null
         val dsl = dsl {
             A
             list = inserted {
                 B
+                list2 = inserted {
+                    C
+                }
             }
-            C
+            D
         }
 
         assertEquals(listOf(
             generate("A"),
-            generate("C")
+            generate("D")
         ).jts(), dsl.jts())
 
         assertEquals(listOf(
             generate("B"),
         ).jts(), list?.jts())
+
+        assertEquals(listOf(
+            generate("C"),
+        ).jts(), list2?.jts())
+    }
+
+    @Test
+    fun testScope() {
+        val dsl = dsl {
+            C
+            scope {
+                duration = .5
+                pitch = 5
+                velocity = 69
+                D
+            }
+            E
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("D5", .5, velocity = 69),
+            generate("E"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testVelocity() {
+        val dsl = dsl {
+            C
+            velocity(55) {
+                D
+            }
+            E
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("D", velocity = 55),
+            generate("E"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testPitch() {
+        val dsl = dsl {
+            C
+            6 {
+                D
+            }
+            E
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("D6"),
+            generate("E"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testCharDuration() {
+        val dsl = dsl {
+            C
+            '2' {
+                D
+            }
+            E
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("D", duration*2),
+            generate("E"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testIntXIM() {
+        val dsl = dsl {
+            3 * (A+1)
+        }
+
+        assertEquals(listOf(
+            generate("A5"),
+            generate("A5"),
+            generate("A5")
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testUseMode() {
+        val dsl = dsl {
+            "Cmin" {
+                C..B under majorScale
+            }
+            "Fmin" {
+                C..B under majorScale
+                !A
+            }
+            "Amin" {
+                C..B under majorScale
+            }
+            "B" {
+                C..B under majorScale
+            }
+            "Emajor" {
+                C..B under majorScale
+                !D
+            }
+        }
+
+        assertEquals(listOf(
+            generate("C"),
+            generate("D"),
+            generate("#D"),
+            generate("F"),
+            generate("G"),
+            generate("#G"),
+            generate("#A"),
+
+            generate("C"),
+            generate("#C"),
+            generate("#D"),
+            generate("F"),
+            generate("G"),
+            generate("#G"),
+            generate("#A"),
+            generate("A"),
+
+            generate("C"),
+            generate("D"),
+            generate("E"),
+            generate("F"),
+            generate("G"),
+            generate("A"),
+            generate("B"),
+
+            generate("B"),
+            generate("#C5"),
+            generate("#D5"),
+            generate("E5"),
+            generate("#F5"),
+            generate("#G5"),
+            generate("#A5"),
+
+            generate("E"),
+            generate("#F"),
+            generate("#G"),
+            generate("A"),
+            generate("B"),
+            generate("#C5"),
+            generate("#D5"),
+            generate("D"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testRepeat() {
+        val dsl = dsl {
+            repeat {
+                when(repeatCount) {
+                    1 -> A
+                    2 -> B[5]
+                }
+
+                repeat {
+                    when(repeatCount) {
+                        1 -> C
+                        2 -> D
+                    }
+                }
+            }
+        }
+
+        assertEquals(listOf(
+            generate("A"),
+            generate("C"),
+            generate("D"),
+            generate("B5"),
+            generate("C"),
+            generate("D"),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testChordInterval() {
+        val dsl = dsl {
+            withInterval(F[5] - A) {
+                A*2; G; A; B*2
+            }
+        }
+
+        assertEquals(listOf(
+            "Chord: " + listOf(generate("A", duration*2), generate("F5",duration*2)).jts(" "),
+            "Chord: " + listOf(generate("G"), generate("#D5")).jts(" "),
+            "Chord: " + listOf(generate("A"), generate("F5")).jts(" "),
+            "Chord: " + listOf(generate("B", duration*2), generate("G5",duration*2)).jts(" "),
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testDefAndExec() {
+        val dsl = dsl {
+            val p = def { C }
+            val l = exec { B }
+            +l; +p
+        }
+
+        assertEquals(listOf(
+            generate("B"),
+            generate("B"),
+            generate("C")
+        ).jts(), dsl.jts())
+    }
+
+    @Test
+    fun testTracks() {
+        val dsl = dsl {
+           track {
+               A
+           }
+        }
+
+        assertEquals(listOf(
+            generate("A")
+        ).jts(), dsl.otherTracks.last().jts())
     }
 
     fun dsl(block : MiderDSLv2.() -> Unit): MiderDSLv2 {
@@ -725,6 +956,15 @@ abstract class ABTestInMusicScore {
     protected val duration: Double = 0.25
     protected val velocity: Int = 100
     protected fun generate(name: String, duration: Double = this.duration, pitch: Int = 4, velocity: Int = this.velocity): String = generateNoteString(name, duration, pitch, velocity)
+
+    protected fun List<String>.generate(separator: String = "\n", pitch: Int = 4, duration: Double = this@ABTestInMusicScore.duration, velocity: Int = this@ABTestInMusicScore.velocity): String {
+        val mutableList = mutableListOf<String>()
+        forEach {
+            mutableList += generate(it, duration, pitch = pitch, velocity = velocity)
+        }
+        return mutableList.jts(separator)
+    }
+
     protected fun List<*>.jts(separator: String = "\n"): String = joinToString(separator)
     protected fun InMusicScoreContainer.jts(separator: String = "\n") = mainList.jts(separator)
     protected fun MiderDSLv2.jts(separator: String = "\n") = container.jts(separator)

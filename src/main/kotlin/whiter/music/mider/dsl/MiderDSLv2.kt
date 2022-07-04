@@ -1,15 +1,20 @@
 package whiter.music.mider.dsl
 
+import whiter.music.mider.*
 import whiter.music.mider.annotation.Tested
 import whiter.music.mider.code.MacroConfiguration
 import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
+import java.util.StringJoiner
 import kotlin.math.pow
 import kotlin.reflect.KProperty
 
 class InMusicScoreContainer {
     val mainList: MutableList<InMusicScore> = mutableListOf()
     private var currentList: MutableList<InMusicScore> = mainList
+
+    val mainAttach: MutableMap<String, Any> = mutableMapOf()
+    private var currentAttach: MutableMap<String, Any> = mainAttach
 
     fun pushIntoContainer(im: InMusicScore) {
         currentList += im
@@ -37,6 +42,16 @@ class InMusicScoreContainer {
 //        pushIntoContainer(value)
 //    }
 
+    fun addAttach(key: String, any: Any) {
+        currentAttach[key] = any
+    }
+
+    fun popAttach(key: String): Any? {
+        val any = currentAttach[key]
+        currentAttach.remove(key)
+        return any
+    }
+
     fun redirectTo(to: MutableList<InMusicScore>) {
         currentList = to
     }
@@ -45,25 +60,23 @@ class InMusicScoreContainer {
             currentList = mainList
     }
 
+    fun redirectAttachTo(to: MutableMap<String, Any>) {
+        currentAttach = to
+    }
+
+    fun redirectAttachToMain() {
+        currentAttach = mainAttach
+    }
 }
 
 class MiderDSLv2 {
     val container = InMusicScoreContainer()
 
     val otherTracks = mutableListOf<MiderDSLv2>()
-    private val entrustedChord = mutableMapOf<String, Chord>()
-    private val entrustedNote = mutableMapOf<String, Note>()
     private val entrusted = mutableMapOf<String, InMusicScore>()
 
-//    private val entrusti = mutableMapOf<String, note>()
-//    private val entrustc = mutableMapOf<String, MutableList<note>>()
-//    private val __rest_instance = rest()
+    var repeatCount: Int = 0
 
-//    private val current: InMusicScore get() = container.mainList.last()
-//    private val last: InMusicScore get() = container.mainList[container.mainList.lastIndex - 1]
-
-    private var isInRepeat: Boolean = false
-    private var repeatCount: Int = 0
     val major = 0
     val minor = 1
     /**
@@ -97,15 +110,12 @@ class MiderDSLv2 {
     val decreasedSeventh = arrayOf(3, 3, 3)
 
     var pitch = 4
-    var duration = 1.0/4.0 // 1.0为全音符
-    var defaultNoteDuration = 4 // 默认是四分音符
+    var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
-//    var program: instrument = instrument.piano
+    var program: MidiInstrument = MidiInstrument.piano
     var bpm = 80
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
-//    val signatureKeysList = mutableListOf<Pair<Pair<Ks, Int>, IntRange>>()
-//    var keySignature: Pair<Ks, Int>? = null // getKeySignatureFromN(note('C'), major)
-    val end = 0
+    var keySignature: String? = null // getKeySignatureFromN(note('C'), major)
 
     val O: Rest get() {
         val rest = Rest(InMusicScore.DurationDescribe(default = duration))
@@ -161,6 +171,26 @@ class MiderDSLv2 {
         container.mainList.forEach(function)
     }
 
+    @Tested
+    fun track(block: MiderDSLv2.() -> Unit) {
+        val new = MiderDSLv2()
+        new.block()
+        otherTracks += new
+    }
+
+    @Tested
+    fun def(block: MiderDSLv2.() -> Unit): MiderDSLv2.() -> Unit = block
+
+    @Tested
+    fun exec(block: MiderDSLv2.() -> Unit): MiderDSLv2.() -> Unit {
+        +block
+        return block
+    }
+
+    @Tested
+    operator fun (MiderDSLv2.() -> Unit).unaryPlus() = this()
+
+    @Tested
     fun velocity(value: Int, block: MiderDSLv2.() -> Unit) {
         val cacheVelocity = velocity
         velocity = value
@@ -168,6 +198,7 @@ class MiderDSLv2 {
         velocity = cacheVelocity
     }
 
+    @Tested
     fun inserted(block: MiderDSLv2.() -> Unit): MutableList<InMusicScore> {
         val list = mutableListOf<InMusicScore>()
         container.redirectTo(list)
@@ -176,11 +207,21 @@ class MiderDSLv2 {
         return list
     }
 
+    @Tested
     fun repeat(times: Int = 2, block: MiderDSLv2.() -> Unit) {
-        for (i in 0 until times) block()
+        val cache = repeatCount
+        for (i in 0 until times) {
+            repeatCount = i + 1
+            block()
+            repeatCount ++
+        }
+        repeatCount = cache
     }
 
-    // 配合 String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration) 使用
+    /**
+     * 配合 String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration) 使用
+     */
+    @Tested
     fun scope(block: MiderDSLv2.() -> Unit) {
         val cacheDuration = duration
         val cachePitch = pitch
@@ -191,13 +232,35 @@ class MiderDSLv2 {
         duration = cacheDuration
     }
 
-//    operator fun (MiderDSLv2.() -> Unit).unaryPlus() {
-//        this()
-//    }
+    fun higher(step: Byte = 1, block: MiderDSLv2.() -> Unit) {
+        val inc = pitch + step
+        inc(block)
+    }
+
+    fun lower(step: Byte = 1, block: MiderDSLv2.() -> Unit) {
+        val dec = pitch - step
+        dec(block)
+    }
+
+    /**
+     * 根据音阶构建和弦
+     */
+    @Tested
+    fun withInterval(int: Int, block: MiderDSLv2.() -> Unit) {
+        inserted(block).forEach {
+            container += if (it is Note) {
+                val second = it.clone()
+                if (int > 0) second.up(int) else if (int < 0) it.down(-int)
+                Chord(it, second)
+            } else it
+        }
+    }
+
     infix fun Int.dot(times: Int) = this * 1.5.pow(times.toDouble())
 
     val Int.dot get() = this dot 1
 
+    @Tested
     operator fun Int.invoke(block: MiderDSLv2.() -> Unit) {
         val cachePitch = pitch
         pitch = this
@@ -205,18 +268,7 @@ class MiderDSLv2 {
         pitch = cachePitch
     }
 
-    operator fun Int.times(note: Note): Note {
-        for (index in 0 until this - 1)
-            container += note.clone()
-        return note
-    }
-
-    operator fun Int.times(chord: Chord): Chord {
-        for (index in 0 until this - 1)
-            container += chord.clone()
-        return chord
-    }
-
+    @Tested
     operator fun Char.invoke(block: MiderDSLv2.() -> Unit) {
         val cacheDuration = duration
         duration = 1.0 / (this.code - 48)
@@ -229,27 +281,83 @@ class MiderDSLv2 {
     }
 
     operator fun String.unaryPlus() {
-//        container += toInMusicScoreList(this, pitch, velocity, duration)
         this()
     }
 
+    //todo
     operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
         container += toInMusicScoreList(this, pitch, velocity, duration, isStave, useMacro, config)
     }
 
+    @Tested
     operator fun String.invoke(block: MiderDSLv2.() -> Unit) {
         // use Mode
+        val prefix = if (first() in "+-b#") {
+            first().toString()
+        } else ""
+
+        val name = (if (first() in "+-b#") {
+            substring(1, length)
+        } else this)[0].toString()
+
+        val mode = (if (first() in "+-b#") {
+            substring(2, length)
+        } else substring(1, length))
+
+        val notes = inserted(block)
+
+        when(mode) {
+            // 同名小调
+            "min", "minor" -> {
+
+                val mapper = minorScaleMapper(prefix + name)
+                if (mapper.isEmpty()) {
+                    container += notes
+                    return
+                }
+
+                val matches = mapper.map {
+                    it.replace(Regex("[+\\-#b]"), "") to (it.charCount('+', '#') - it.charCount('-', 'b'))
+                }
+
+                val mapperNames = matches.map { modeCfg -> modeCfg.first }
+
+                notes.operationExtendNotes {
+                    if (!it.isNature && it.actualName in mapperNames) {
+                        val alter = matches.find { pair -> it.actualName == pair.first }!!.second
+                        if (alter > 0) it.sharp(alter) else if (alter < 0) it.flap(-alter)
+                    }
+                }
+
+                container += notes
+            }
+
+            "maj", "major", "" -> {
+                val offset = noteBaseOffset(prefix.replace("+", "#").replace("-", "b") + name)
+                if (offset == 0) {
+                    container += notes
+                    return
+                }
+
+                notes.operationExtendNotes {
+                    if (!it.isNature) {
+                        it.sharp(offset)
+                    }
+                }
+
+                container += notes
+            }
+
+            else -> TODO("not yet implement")
+        }
     }
 
-//    operator fun Rest.times(value: Number): Rest {
-//        duration.multiple = value.toDouble()
-//        return this
-//    }
-//
-//    operator fun Rest.div(value: Number): Rest {
-//        duration.denominator = value.toDouble()
-//        return this
-//    }
+    @Tested
+    operator fun <IM: InMusicScore> Int.times(im: IM): IM {
+        for (index in 0 until this - 1)
+            container += im.clone()
+        return im
+    }
 
     @Tested
     infix fun <IM : InMusicScore> IM.dot(times: Int): IM {
@@ -283,7 +391,6 @@ class MiderDSLv2 {
         return this
     }
 
-
     @Tested
     operator fun <IM: InMusicScore> IM.getValue(nothing: Nothing?, property: KProperty<*>): IM {
         val im: IM = (entrusted[property.name]?.let {
@@ -304,13 +411,6 @@ class MiderDSLv2 {
 
     operator fun <IM> Rest.plus(im: IM): IM = im
 
-//    @Tested
-//    operator fun Glissando.plus(note: Note): Glissando {
-//        container - 1
-//        this += note
-//        return this
-//    }
-
     @Tested
     infix fun Glissando.gliss(note: Note): Glissando = this + note
 
@@ -326,25 +426,11 @@ class MiderDSLv2 {
         return this
     }
 
-//    @Tested
-//    operator fun Chord.plus(note: Note): Chord {
-//        container - 1
-//        this += note
-//        return this
-//    }
-
     @Tested
     operator fun Chord.plus(pitch: Int): Chord {
         notes.forEach { it += pitch }
         return this
     }
-
-//    @Tested
-//    operator fun Chord.minus(note: Note): Chord {
-//        container - 1
-//        this -= note
-//        return this
-//    }
 
     @Tested
     operator fun Chord.minus(pitch: Int): Chord {
@@ -352,33 +438,22 @@ class MiderDSLv2 {
         return this
     }
 
-//    @Tested
-//    operator fun Chord.times(value: Number): Chord {
-//        this.duration.multiple = value.toDouble()
-//        return this
-//    }
-//
-//    operator fun Chord.div(value: Number): Chord {
-//        this.duration.denominator = value.toDouble()
-//        return this
-//    }
-
     @Tested
     operator fun Chord.div(note: Note): Chord {
 
         container - 1
 
-        if (note.code % 12 !in notes.map { it.code % 12 })
+        if (note.actualCode % 12 !in notes.map { it.actualCode % 12 })
             throw Exception("given note: ${note.name} not in $this")
 
-        val target = notes.find { note.code % 12 == it.code % 12 }
+        val target = notes.find { note.actualCode % 12 == it.actualCode % 12 }
         target?.let { b ->
             notes.forEach {
-                if (it.code < b.code) {
+                if (it.actualCode < b.actualCode) {
                     it.pitch ++
                 }
             }
-        } ?: throw Exception("given note: ${note.name} not in $this")
+        } ?: throw Exception("given note: ${note.actualName} not in $this")
 
         return this
     }
@@ -387,9 +462,9 @@ class MiderDSLv2 {
 
     val Chord.sus4: Chord get() {
 
-        when(notes[1].code - rootNote.code) {
-            4 -> notes[1].code ++
-            3 -> notes[1].code += 2
+        when(notes[1].actualCode - rootNote.actualCode) {
+            4 -> notes[1].sharp()
+            3 -> notes[1].sharp(2)
             else -> {
                 throw Exception("this chord did not contain a three degree note from root")
             }
@@ -403,9 +478,9 @@ class MiderDSLv2 {
     @Tested
     val Chord.sus2: Chord get() {
 
-        when(notes[1].code - rootNote.code) {
-            4 -> notes[1].code -= 2
-            3 -> notes[1].code --
+        when(notes[1].actualCode - rootNote.actualCode) {
+            4 -> notes[1].flap(2)
+            3 -> notes[1].flap()
             else -> {
                 throw Exception("this chord did not contain a three degree note from root")
             }
@@ -413,22 +488,6 @@ class MiderDSLv2 {
 
         return this
     }
-
-//    @Tested
-//    operator fun Chord.getValue(nothing: Nothing?, property: KProperty<*>): Chord {
-//        return entrustedChord[property.name]?.let {
-//            val clone = it.clone()
-//            container += clone
-//            clone
-//        } ?: throw Exception("id ${property.name} is miss match")
-//    }
-
-//    @Tested
-//    infix fun Chord.into(id: String): Chord {
-//        entrustedChord[id] = this.clone()
-//        container - 1
-//        return this
-//    }
 
     @Tested
     operator fun Note.plus(pitch: Int): Note {
@@ -440,6 +499,12 @@ class MiderDSLv2 {
     operator fun Note.minus(pitch: Int): Note {
         this -= pitch
         return this
+    }
+
+    operator fun Note.minus(note: Note): Int {
+        val interval = this.actualCode - note.actualCode
+        container - 2
+        return interval
     }
 
     @Tested
@@ -492,15 +557,6 @@ class MiderDSLv2 {
         return chord
     }
 
-//    @Tested
-//    operator fun Note.getValue(nothing: Nothing?, property: KProperty<*>): Note {
-//        return entrustedNote[property.name]?.let {
-//            val clone = it.clone()
-//            container += clone
-//            clone
-//        } ?: throw Exception("id ${property.name} is miss match")
-//    }
-
     @Tested
     operator fun Note.rangeTo(note: Note): Scale {
         val scale = Scale.generate(this, note)
@@ -508,13 +564,6 @@ class MiderDSLv2 {
         container += scale
         return scale
     }
-
-//    @Tested
-//    infix fun Note.into(id: String): Note {
-//        entrustedNote[id] = this.clone()
-//        container - 1
-//        return this
-//    }
 
     @Tested
     infix fun Note.triad(mode: Array<Int>): Chord {

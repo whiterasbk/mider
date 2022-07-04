@@ -1,5 +1,6 @@
 package whiter.music.mider
 
+import whiter.music.mider.descr.*
 import java.lang.StringBuilder
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -177,6 +178,36 @@ fun noteBaseOffset(note: String): Int {
     }
 }
 
+fun minorScaleMapper(name: String): Array<String> {
+    return when(name) {
+        "C" -> arrayOf("-E", "-A", "-B")
+        "D" -> arrayOf("-B")
+        "E" -> arrayOf("+F")
+        "F" -> arrayOf("-A", "-B", "-D", "-E")
+        "G" -> arrayOf("-B", "-E")
+        "A" -> arrayOf()
+        "B" -> arrayOf("+F", "+C")
+        else -> TODO("current mode has not implemented")
+    }
+}
+
+fun List<InMusicScore>.operationExtendNotes(op: (Note) -> Unit) {
+    forEach {
+        when (it) {
+            is Note -> op(it)
+            is NoteContainer -> {
+                it.notes.forEach { note ->
+                    op(note)
+                }
+            }
+            is Appoggiatura -> {
+                op(it.main)
+                op(it.second)
+            }
+        }
+    }
+}
+
 /**
  * 根据 code 获取音符名称, 只能返回升号
  */
@@ -219,7 +250,13 @@ fun noteNameFromCodeFlat(code: Int): String {
     }
 }
 
-fun charCount(str: CharSequence, char: Char): Int = str.filter { it == char }.count()
+fun CharSequence.charCount(vararg cmp: Char): Int = filter { char ->
+    var result = 0
+    cmp.forEach { given ->
+        if (char == given) result ++
+    }
+    result > 0
+}.count()
 
 fun deriveInterval(index: Int, scale: Array<Int> = arrayOf(2, 2, 1, 2, 2, 2, 1)): Int {
     var sum = 0
