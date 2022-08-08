@@ -1,6 +1,6 @@
 package whiter.music.mider.descr
 
-class Rest(override val duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe()) : InMusicScore {
+class Rest(override val duration: DurationDescribe = DurationDescribe()) : InMusicScore {
     override fun clone(): Rest {
         return Rest(duration.clone())
     }

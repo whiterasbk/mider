@@ -5,19 +5,19 @@ import whiter.music.mider.annotation.Tested
 class Scale(vararg inputNotes: Note) : InMusicScore, NoteContainer {
 
     companion object {
-        fun generate(from: Note, to: Note): Scale {
+        fun generate(from: Note, to: Note, defaultDuration: DurationDescribe? = null): Scale {
             if (from.actualCode > to.actualCode) throw Exception("from.code has to > to.code")
             val list = mutableListOf<Note>()
             for (i in from.actualCode..to.actualCode) {
-                list += Note(i, from.duration, from.velocity)
+                list += Note(i, defaultDuration ?: from.duration, from.velocity)
             }
             return Scale(*list.toTypedArray())
         }
     }
 
-    override val duration: InMusicScore.DurationDescribe
+    override val duration: DurationDescribe
         get() {
-            val duration = InMusicScore.DurationDescribe()
+            val duration = DurationDescribe()
             notes.forEach {
                 duration += it.duration
             }

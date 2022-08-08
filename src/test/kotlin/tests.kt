@@ -449,6 +449,16 @@ class TestUtils {
             "bA", "A", "bB", "B"
         ) * 11).removeLastAndReturnSelf(4), list)
     }
+
+    @Test
+    fun testGlissandoPoints() {
+        assertEquals("[([60=C4|0.25|100], [64=E4|0.25|100]), ([64=E4|0.25|100], [67=G4|0.25|100]), ([67=G4|0.25|100], [71=B4|0.25|100])]",
+            listOf(Note("C"),
+                Note("E"),
+                Note("G"),
+                Note("B")
+            ).glissandoPoints().toString())
+    }
 }
 
 class TestMiderDsl : ABTestInMusicScore() {
@@ -495,6 +505,8 @@ class TestMiderDsl : ABTestInMusicScore() {
 
             a - 1
             a*2
+            a.ascending
+            a.downward
         }
 
         assertEquals(listOf(
@@ -549,8 +561,21 @@ class TestMiderDsl : ABTestInMusicScore() {
                 generate("C", duration * 2),
                 generate("E"),
                 generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
+            ).jts(" "),
+            "Chord: " + listOf(
+                generate("C"),
+                generate("E"),
+                generate("G"),
             ).jts(" ")
         ).jts(), dsl.jts())
+
+        assertEquals(ArpeggioType.Ascending, dsl.container.mainList[dsl.container.mainList.lastIndex - 1].cast<Chord>().arpeggio)
+        assertEquals(ArpeggioType.Downward, dsl.container.mainList.last().cast<Chord>().arpeggio)
     }
 
     @Test
@@ -904,12 +929,16 @@ class TestMiderDsl : ABTestInMusicScore() {
     @Test
     fun testChordInterval() {
         val dsl = dsl {
+            "Cminor" { A; B; C }
             withInterval(F[5] - A) {
                 A*2; G; A; B*2
             }
         }
 
         assertEquals(listOf(
+            generate("#G"),
+            generate("#A"),
+            generate("C"),
             "Chord: " + listOf(generate("A", duration*2), generate("F5",duration*2)).jts(" "),
             "Chord: " + listOf(generate("G"), generate("#D5")).jts(" "),
             "Chord: " + listOf(generate("A"), generate("F5")).jts(" "),

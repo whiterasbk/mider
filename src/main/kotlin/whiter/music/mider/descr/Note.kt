@@ -10,18 +10,19 @@ import whiter.music.mider.*
 class Note(
     /**
      * 获取 midi code, 但是不受 alter 影响, 获取受 alter 影响后的 code 请使用 actualCode
+     * @see actualCode
      */
     var code: Int,
-    override val duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe(),
+    override val duration: DurationDescribe = DurationDescribe(),
     var velocity: Int = 100,
     var isNature: Boolean = false, // 是否添加了还原符号
     var alter: Int = 0,
     var attach: NoteAttach? = null
 ) : InMusicScore, HasFlatAndSharp, HasOctave, CanModifyTargetVelocity, CanModifyTargetPitch {
 
-    constructor(name: String, pitch: Int = 4, duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe(), velocity: Int = 100)
+    constructor(name: String, pitch: Int = 4, duration: DurationDescribe = DurationDescribe(), velocity: Int = 100)
             : this(noteBaseOffset (name) + (pitch + 1) * 12, duration, velocity)
-    constructor(name: Char, pitch: Int = 4, duration: InMusicScore.DurationDescribe = InMusicScore.DurationDescribe(), velocity: Int = 100)
+    constructor(name: Char, pitch: Int = 4, duration: DurationDescribe = DurationDescribe(), velocity: Int = 100)
             : this(name.uppercase(), pitch, duration, velocity)
 
     /**

@@ -3,7 +3,6 @@ package whiter.music.mider.code
 import whiter.music.mider.*
 import whiter.music.mider.descr.*
 import whiter.music.mider.descr.Note
-import whiter.music.mider.xml.DurationType
 import java.lang.StringBuilder
 import java.util.*
 import java.io.File
@@ -243,7 +242,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
             when (char) {
                 in 'a'..'g' -> {
                     if (isStave) {
-                        list += Note(char, pitch, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                        list += Note(char, pitch, DurationDescribe(default = durationDefault), velocity)
                     } else if (char == 'b') {
                         doAfter += {
                             (list.last() as? Note)?.flap()
@@ -253,7 +252,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
 
                 in 'A'..'G' -> {
                     if (isStave) {
-                        list += Note(char, pitch + 1, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                        list += Note(char, pitch + 1, DurationDescribe(default = durationDefault), velocity)
                     }
                 }
 
@@ -263,29 +262,35 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                         if (list.last() is CanModifyTargetPitch)
                             list.last().cast<CanModifyTargetPitch>().modifyTargetPitch(char.code - 48)
                     } else if (char in '1'..'7') {
-                        val note = Note('C', pitch, InMusicScore.DurationDescribe(default = durationDefault), velocity)
+                        val note = Note('C', pitch, DurationDescribe(default = durationDefault), velocity)
                         note.up(deriveInterval(char.code - 49))
                         list += note
                     } else if (char == '0') {
                         doAfter.clear()
-                        list += Rest(InMusicScore.DurationDescribe(default = durationDefault))
+                        list += Rest(DurationDescribe(default = durationDefault))
                     }
                 }
 
                 'O' -> {
                     doAfter.clear()
-                    list += Rest(InMusicScore.DurationDescribe(default = durationDefault)).let { it.duration.double; it }
+                    list += Rest(DurationDescribe(default = durationDefault)).let { it.duration.double; it }
                 }
 
                 'o' -> {
                     doAfter.clear()
-                    list += Rest(InMusicScore.DurationDescribe(default = durationDefault))
+                    list += Rest(DurationDescribe(default = durationDefault))
                 }
 
                 't' -> {
                     checkSuffixModifyAvailable()
-                    if (list.last() is Appoggiatura) {
-                        list.last().cast<Appoggiatura>().isFront = false
+                    when (list.last()) {
+                        is Appoggiatura -> {
+                            list.last().cast<Appoggiatura>().isFront = false
+                        }
+
+                        is Glissando -> {
+                            list.last().cast<Glissando>().isContainBlack = true
+                        }
                     }
                 }
 

@@ -5,16 +5,15 @@ import whiter.music.mider.annotation.Tested
 import whiter.music.mider.code.MacroConfiguration
 import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
-import java.util.StringJoiner
 import kotlin.math.pow
 import kotlin.reflect.KProperty
 
 class InMusicScoreContainer {
     val mainList: MutableList<InMusicScore> = mutableListOf()
-    private var currentList: MutableList<InMusicScore> = mainList
+    var currentList: MutableList<InMusicScore> = mainList
 
     val mainAttach: MutableMap<String, Any> = mutableMapOf()
-    private var currentAttach: MutableMap<String, Any> = mainAttach
+    var currentAttach: MutableMap<String, Any> = mainAttach
 
     fun pushIntoContainer(im: InMusicScore) {
         currentList += im
@@ -69,7 +68,10 @@ class InMusicScoreContainer {
     }
 }
 
-class MiderDSLv2 {
+class MiderDSLv2(
+    var dispatcher: NormalChannelDispatcher = NormalChannelDispatcher()
+) : DispatcherControlled {
+
     val container = InMusicScoreContainer()
 
     val otherTracks = mutableListOf<MiderDSLv2>()
@@ -109,16 +111,37 @@ class MiderDSLv2 {
     // 减七和弦
     val decreasedSeventh = arrayOf(3, 3, 3)
 
+
+    private var isModifiedProgram = false
+
     var pitch = 4
     var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
     var program: MidiInstrument = MidiInstrument.piano
+        set(value) {
+
+//            if (!isModifiedProgram) {
+//                isModifiedProgram = true
+//                channel ++
+//            }
+
+            container += InMusicScoreMidiEvent(
+                EventType.program_change,
+                byteArrayOf(value.id.toByte()),
+                dispatcher.getChannel(this)
+            )
+            field = value
+        }
     var bpm = 80
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
     var keySignature: String? = null // getKeySignatureFromN(note('C'), major)
 
+    init {
+        dispatcher.mount(this)
+    }
+
     val O: Rest get() {
-        val rest = Rest(InMusicScore.DurationDescribe(default = duration))
+        val rest = Rest(DurationDescribe(default = duration))
         container += rest
         return rest
     }
@@ -165,7 +188,7 @@ class MiderDSLv2 {
         return note
     }
 
-    private fun creatNote(name: String): Note = Note(name, pitch, InMusicScore.DurationDescribe(default = duration), velocity)
+    private fun creatNote(name: String): Note = Note(name, pitch, DurationDescribe(default = duration), velocity)
 
     fun printInserted(function: (InMusicScore) -> Unit = ::println) {
         container.mainList.forEach(function)
@@ -173,10 +196,20 @@ class MiderDSLv2 {
 
     @Tested
     fun track(block: MiderDSLv2.() -> Unit) {
-        val new = MiderDSLv2()
+        val new = MiderDSLv2(dispatcher)
+//        new.channel = channel + 1 // todo
         new.block()
         otherTracks += new
     }
+
+    fun instrument(ins: MidiInstrument, block: MiderDSLv2.() -> Unit) {
+        val cache = program
+        program = ins
+        block()
+        program = cache
+    }
+
+    fun instrument(ins: String, block: MiderDSLv2.() -> Unit) = instrument(MidiInstrument.valueOf(ins), block)
 
     @Tested
     fun def(block: MiderDSLv2.() -> Unit): MiderDSLv2.() -> Unit = block
@@ -200,10 +233,13 @@ class MiderDSLv2 {
 
     @Tested
     fun inserted(block: MiderDSLv2.() -> Unit): MutableList<InMusicScore> {
+        // todo 考虑异步
         val list = mutableListOf<InMusicScore>()
+        val cache = container.currentList
         container.redirectTo(list)
         block()
-        container.redirectToMain()
+        container.redirectTo(cache)
+//        container.redirectToMain()
         return list
     }
 
@@ -420,6 +456,11 @@ class MiderDSLv2 {
         return this
     }
 
+    val Glissando.hasBlack: Glissando get() {
+        isContainBlack = true
+        return this
+    }
+
     @Tested
     val Appoggiatura.back: Appoggiatura get() {
         isFront = false
@@ -486,6 +527,18 @@ class MiderDSLv2 {
             }
         }
 
+        return this
+    }
+
+    @Tested
+    val Chord.ascending: Chord get() {
+        this.arpeggio = ArpeggioType.Ascending
+        return this
+    }
+
+    @Tested
+    val Chord.downward: Chord get() {
+        this.arpeggio = ArpeggioType.Downward
         return this
     }
 

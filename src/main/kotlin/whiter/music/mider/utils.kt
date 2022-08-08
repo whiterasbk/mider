@@ -201,8 +201,8 @@ fun List<InMusicScore>.operationExtendNotes(op: (Note) -> Unit) {
                 }
             }
             is Appoggiatura -> {
-                op(it.main)
                 op(it.second)
+                op(it.main)
             }
         }
     }
@@ -337,4 +337,12 @@ fun String.nextGivenChar(index: Int, char: Char, maxBit: Int): String {
     if (count == 0) throw Exception("there's no char '$char' found after char '${this[index]}', index: $index or maxCount < 1")
 
     return sb.toString()
+}
+
+fun List<Note>.glissandoPoints(): List<Pair<Note, Note>> {
+    val list = mutableListOf<Pair<Note, Note>>()
+    for (i in 0 until lastIndex) {
+        list += this[i] to this[i + 1]
+    }
+    return list
 }

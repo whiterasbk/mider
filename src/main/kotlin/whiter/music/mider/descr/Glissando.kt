@@ -7,13 +7,17 @@ import whiter.music.mider.cast
 //    override fun clone(): CanBeGlissed
 //}
 
-class Glissando(vararg val args: Note) : InMusicScore, HasFlatAndSharp, CanModifyTargetVelocity, HasOctave, CanModifyTargetDuration, CanModifyTargetPitch, NoteContainer {
+/**
+ * 滑音
+ */
+class Glissando(private vararg val args: Note) : InMusicScore, HasFlatAndSharp, CanModifyTargetVelocity, HasOctave, CanModifyTargetDuration, CanModifyTargetPitch, NoteContainer {
     var isWave = false
+    var isContainBlack = false
     override val notes = args.toMutableList()
 
-    override val duration: InMusicScore.DurationDescribe
+    override val duration: DurationDescribe
         get() {
-            val duration = InMusicScore.DurationDescribe()
+            val duration = DurationDescribe()
             notes.forEach {
                 duration += it.duration
             }
@@ -21,7 +25,7 @@ class Glissando(vararg val args: Note) : InMusicScore, HasFlatAndSharp, CanModif
             return duration
         }
 
-    override fun getTargetDuration(): InMusicScore.DurationDescribe = notes.last().duration
+    override fun getTargetDuration(): DurationDescribe = notes.last().duration
 
     override fun modifyTargetPitch(given: Int) {
         notes.last().cast<Note>().pitch = given
@@ -39,6 +43,7 @@ class Glissando(vararg val args: Note) : InMusicScore, HasFlatAndSharp, CanModif
 
         val one = Glissando(*cloneNotes.toTypedArray())
         one.isWave = isWave
+        one.isContainBlack = isContainBlack
         return one
     }
 

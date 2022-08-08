@@ -19,9 +19,12 @@ class Chord(vararg firstNotes: Note) : InMusicScore, HasFlatAndSharp, HasOctave,
     // val secondNote get() = notes[1]
     // val thirdNote get() = notes[2]
     // val forthNote get() = notes[3]
+    /**
+     * 除根音以外剩下的音符
+     */
     val rest: List<Note> get() = notes.subList(1, notes.size)
-    override val duration: InMusicScore.DurationDescribe = rootNote.duration
-    override fun getTargetDuration(): InMusicScore.DurationDescribe = last().duration
+    override val duration: DurationDescribe = rootNote.duration
+    override fun getTargetDuration(): DurationDescribe = last().duration
     override fun modifyTargetVelocity(value: Int) {
         last().velocity = value
     }
