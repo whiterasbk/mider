@@ -1,65 +1,65 @@
 package whiter.music.mider
 
 import whiter.music.mider.descr.*
-import whiter.music.mider.dsl.MiderDSLv2
-import javax.sound.midi.MidiSystem
-import kotlin.math.log2
+import whiter.music.mider.xml.*
+import java.util.StringJoiner
+import kotlin.math.pow
 
-fun ppply(path: String, block: MiderDSLv2.() -> Unit) {
-    val dsl = MiderDSLv2()
-    dsl.block()
-    val wholeTicks = 960 * 2 * 2
-    val clock: Byte = 18
-    val midi = MidiFile()
-
-    fun MidiFile.addTrack(dslObj: MiderDSLv2) {
-        track {
-            dslObj.container.mainList
-                .convert2MidiMessages(
-                    wholeTicks
-                )
-                .forEach {
-                    append(it)
-                }
-            end()
-        }
-    }
-
-    midi.append {
-        track {
-            tempo(dsl.bpm)
-
-//            dsl.keySignature?.let {
-//                meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
+//fun ppply(path: String, block: MiderDSLv2.() -> Unit) {
+//    val dsl = MiderDSLv2()
+//    dsl.block()
+//    val wholeTicks = 960 * 2 * 2
+//    val clock: Byte = 18
+//    val midi = MidiFile()
+//
+//    fun MidiFile.addTrack(dslObj: MiderDSLv2) {
+//        track {
+//            dslObj.container.mainList
+//                .convert2MidiMessages(
+//                    wholeTicks
+//                )
+//                .forEach {
+//                    append(it)
+//                }
+//            end()
+//        }
+//    }
+//
+//    midi.append {
+//        track {
+//            tempo(dsl.bpm)
+//
+////            dsl.keySignature?.let {
+////                meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
+////            }
+//
+//            dsl.timeSignature?.let {
+//                meta(
+//                    MetaEventType.META_TIME_SIGNATURE,
+//                    it.first.toByte(),
+//                    log2(it.second.toDouble()).toInt().toByte(),
+//                    clock, 8
+//                )
 //            }
-
-            dsl.timeSignature?.let {
-                meta(
-                    MetaEventType.META_TIME_SIGNATURE,
-                    it.first.toByte(),
-                    log2(it.second.toDouble()).toInt().toByte(),
-                    clock, 8
-                )
-            }
-
-            end()
-        }
-
-        addTrack(dsl)
-
-        if (dsl.otherTracks.isNotEmpty()) {
-            dsl.otherTracks.forEach {
-                addTrack(it)
-            }
-        }
-    }
-
-    midi.save(path)
-    val sequencer = MidiSystem.getSequencer()
-    sequencer.setSequence(midi.inStream())
-    sequencer.open()
-    sequencer.start()
-}
+//
+//            end()
+//        }
+//
+//        addTrack(dsl)
+//
+//        if (dsl.otherTracks.isNotEmpty()) {
+//            dsl.otherTracks.forEach {
+//                addTrack(it)
+//            }
+//        }
+//    }
+//
+//    midi.save(path)
+//    val sequencer = MidiSystem.getSequencer()
+//    sequencer.setSequence(midi.inStream())
+//    sequencer.open()
+//    sequencer.start()
+//}
 
 class ConvertMidiEventConfiguration {
     /**
@@ -81,9 +81,9 @@ fun List<InMusicScore>.convert2MidiMessages(
     channel: Int = 0,
     velocity: Float = 1f,
     config: ConvertMidiEventConfiguration = ConvertMidiEventConfiguration()
-): MutableList<Message> {
+): MutableList<IMessage> {
 
-    val msgs = mutableListOf<Message>()
+    val msgs = mutableListOf<IMessage>()
     var previousTicks = 0
     var modifyChannel = channel
 
@@ -135,7 +135,7 @@ fun List<InMusicScore>.convert2MidiMessages(
                         }
                     }
 
-                    // 琶音下行
+                    // 下行琶音
                     ArpeggioType.Downward -> {
                         msgs += noteOnMessage(it.rest.last().actualCode, previousTicks, it.rest.last().velocity  * velocity, modifyChannel)
 
@@ -284,14 +284,349 @@ fun List<InMusicScore>.convert2MidiMessages(
                 previousTicks = 0
             }
 
-            is InMusicScoreMidiEvent -> {
+            is InMusicScoreMidiNormalEvent -> {
                 modifyChannel = it.channel
                 msgs += Message(Event(it.type, it.args, it.channel.toByte()))
+            }
+
+            is InMusicScoreMidiMetaEvent -> {
+                msgs += MetaMessage(MetaEvent(it.type, it.args))
             }
         }
     }
 
     return msgs
+}
+
+fun List<InMusicScore>.convert2MusicXml(
+    tempo: Int = 80,
+    beats: Int = 4,
+    beatType: Int = 4,
+    divisions: Int = 480, // 四分音符所代表的 tick 数字
+    keySignature: String? = null
+): MusicXml {
+    val xmlObj = MusicXml(false)
+
+    xmlObj.part {
+
+        val allMeasureList = mutableListOf<MutableList<NoteElement>>()
+
+        val measureTicks = beats * divisions * beatType / 4 // 一个小节的 tick 数
+
+        var aMeasureCount = 0
+
+        val aMeasureList = mutableListOf<NoteElement>() // 一个小节所包含的音符
+
+        val addLater = mutableListOf<NoteElement>()
+
+        forEachIndexed { index, it ->
+
+            if (addLater.isNotEmpty()) {
+                addLater.forEach { ne ->
+                    aMeasureList += ne
+                    aMeasureCount += ne.duration
+                }
+                addLater.clear()
+            }
+
+            if (aMeasureCount < measureTicks) {
+                it.toNoteElement(divisions)?.let { ne ->
+                    aMeasureList += ne
+                    aMeasureCount += it.durationInDivision(divisions)
+
+                    if (index == lastIndex) {
+                        // 列尾, 结束循环
+                        allMeasureList += aMeasureList.lightClone()
+                        return@forEachIndexed
+                    }
+                }
+            }
+
+            if (aMeasureCount > measureTicks) {
+                // 切分
+                it.separate(aMeasureCount - measureTicks, divisions)?.let { pair ->
+                    aMeasureList.removeLast()
+
+                    aMeasureList += pair.first // pair.second 的 duration 是 aMeasureCount - measureTicks
+
+                    addLater += pair.second
+
+                    allMeasureList += aMeasureList.lightClone()
+                    aMeasureList.clear()
+                    aMeasureCount = 0
+                }
+            } else if (aMeasureCount == measureTicks) {
+                // 正好凑成一个小节的长度
+                allMeasureList += aMeasureList.lightClone()
+                aMeasureList.clear()
+                aMeasureCount = 0
+            }
+        }
+
+        if (allMeasureList.size >= 1) {
+            val firstMeasure = allMeasureList.removeFirst()
+
+            measure {
+                attr(AttributesElement().addDivisions(divisions).let { self ->
+                    keySignature?.let { ksef ->
+                        val ks = toMusicXmlKeySignature(ksef)
+                        self.addKeySignature(ks.first, ks.second)
+                    } ?: self.addKeySignature()
+                }.addTimeSignature(beats, beatType).addClef())
+
+                direction(DirectionElement(tempo))
+                firstMeasure.forEach(::note)
+            }
+
+            allMeasureList.forEach { measure ->
+                measure {
+                    measure.forEach(::note)
+                }
+            }
+        }
+
+    }
+
+    return xmlObj
+}
+
+private fun InMusicScore.separate(left: Int, divisions: Int): Pair<MutableList<NoteElement>, MutableList<NoteElement>>? {
+
+    val first = toNoteElement(divisions, durationInDivision(divisions) - left)
+    val second = if (this is Note && attach != null && attach?.lyric != null) {
+        // 去除第二部分的歌词
+        val one = clone()
+        one.attach = null
+        one.toNoteElement(divisions, left)
+    } else toNoteElement(divisions, left)
+
+    if (first == null || second == null) return null
+
+    val n1 = NotationElement()
+    n1.addTied("start")
+
+    val n2 = NotationElement()
+    n2.addTied("stop")
+
+    if (this !is Rest) {
+        // 休止符不需要 tied
+        first.forEach { it.addNotation(n1) }
+        second.forEach { it.addNotation(n2) }
+    }
+
+    return first to second
+}
+
+private fun InMusicScore.durationInDivision(divisions: Int) = (duration.value * divisions * 4).toInt()
+
+private fun InMusicScore.toNoteElement(divisions: Int, duration: Int = durationInDivision(divisions)): MutableList<NoteElement>? {
+    return when (this) {
+
+        is Note -> {
+            mutableListOf(
+                autoAlter(duration)
+                .setDurationType(divisions)
+                .let { self ->
+                    if (attach != null && attach?.lyric != null)
+                        self.addLyric(attach?.lyric ?: "")
+                    self
+                }
+            )
+        }
+
+        is Rest -> {
+            val element = NoteElement(duration).setDurationType(divisions)
+            element.children.nodes.add(0, Node("rest"))
+            mutableListOf(element)
+        }
+
+        is Chord -> {
+            val root = rootNote.autoAlter(duration).setDurationType(divisions)
+
+            root.let { self ->
+                if (attach != null && attach?.lyric != null)
+                    self.addLyric(attach?.lyric ?: "")
+            }
+
+            val list = mutableListOf(root)
+
+            rest.forEach {
+                val chord = it.autoAlter(duration)
+                chord.children.nodes.add(0, Node("chord"))
+                list += chord
+            }
+
+            list
+        }
+
+        else -> null
+    }
+}
+
+private fun Note.autoAlter(givenDuration: Int): NoteElement {
+
+    var aAlter = alter
+    if (name.contains("#")) {
+        aAlter = 1
+    } else if (name.contains("b")) {
+        aAlter = -1
+    }
+
+    return if (aAlter == 0) {
+        NoteElement(name
+            .replace("#", "")
+            .replace("b", ""),
+            pitch, givenDuration)
+    } else {
+        NoteElement(name
+            .replace("#", "")
+            .replace("b", ""),
+            pitch, givenDuration, aAlter)
+    }
+}
+
+private fun NoteElement.setDurationType(divisions: Int): NoteElement {
+    return when (divisions.toFloat() / duration) {
+
+        // 特殊时值
+        480f * 4 / 3 -> addType(DurationType.half) // 二分三连音
+        480f * 2 / 3 -> addType(DurationType.quarter) // 四分三连音
+        480f / 3 -> addType(DurationType.eighth) // 八分三连音
+        480f / 6 -> addType(DurationType.`16th`) // 十六分三连音
+        480f / 12 -> addType(DurationType.`32th`) // 三十二分三连音
+
+        // 普通时值
+        480f / (1920 * 1.5f) -> {
+            addType(DurationType.whole)
+            addDot()
+        }
+        480f / (1920 * 1.5f * 1.5f) -> {
+            addType(DurationType.whole)
+            addDot().addDot()
+        }
+        480f / 1920 -> addType(DurationType.whole)
+
+        480f / (960 * 1.5f) -> {
+            addType(DurationType.half)
+            addDot()
+        }
+        480f / (960 * 1.5f * 1.5f) -> {
+            addType(DurationType.half)
+            addDot().addDot()
+        }
+        480f / 960 -> addType(DurationType.half)
+
+        480f / (240 * 1.5f) -> {
+            addType(DurationType.eighth)
+            addDot()
+        }
+        480f / (240 * 1.5f * 1.5f) -> {
+            addType(DurationType.eighth)
+            addDot().addDot()
+        }
+        480f / 240 -> addType(DurationType.eighth)
+
+        480f / (120 * 1.5f) -> {
+            addType(DurationType.`16th`)
+            addDot()
+        }
+        480f / (120 * 1.5f * 1.5f) -> {
+            addType(DurationType.`16th`)
+            addDot().addDot()
+        }
+        480f / 120 -> addType(DurationType.`16th`)
+
+        480f / (60 * 1.5f) -> {
+            addType(DurationType.`32th`)
+            addDot()
+        }
+        480f / (60 * 1.5f * 1.5f) -> {
+            addType(DurationType.`32th`)
+            addDot().addDot()
+        }
+        480f / 60 -> addType(DurationType.`32th`)
+
+        480f / (30 * 1.5f) -> {
+            addType(DurationType.`64th`)
+            addDot()
+        }
+        480f / (30 * 1.5f * 1.5f) -> {
+            addType(DurationType.`64th`)
+            addDot().addDot()
+        }
+        480f / 30 -> addType(DurationType.`64th`)
+
+        480f / (15 * 1.5f) -> {
+            addType(DurationType.`128th`)
+            addDot()
+        }
+        480f / (15 * 1.5f * 1.5f) -> {
+            addType(DurationType.`128th`)
+            addDot().addDot()
+        }
+        480f / 15 -> addType(DurationType.`128th`)
+
+        480f / (480 * 1.5f) -> {
+            addType(DurationType.quarter)
+            addDot()
+        }
+        480f / (480 * 1.5f * 1.5f) -> {
+            addType(DurationType.quarter)
+            addDot().addDot()
+        }
+        else -> addType(DurationType.quarter)
+    }
+}
+
+private fun NoteElement.setDuration(describe: DurationDescribe, divisions: Int, tickDuration: Int): NoteElement {
+
+    var type = Node("type", "quarter")
+
+    when (describe.bar) {
+        -2 -> type = Node("type", "whole") //addType(DurationType.whole)
+        -1 -> type = Node("type", "whole") //addType(DurationType.whole)
+         0 -> type = Node("type", "quarter") //addType(DurationType.quarter)
+         1 -> type = Node("type", "eighth") //addType(DurationType.eighth)
+         2 -> type = Node("type", "16th") //addType(DurationType.`16th`)
+         3 -> type = Node("type", "32th") //addType(DurationType.`32th`)
+         4 -> type = Node("type", "64th") //addType(DurationType.`64th`)
+
+        else -> {
+            if (describe.bar > 0) {
+                type = Node("type", "${(2.0.pow(describe.bar + 2)).toInt()}th")
+            }
+
+            // 如果是二全音符
+        }
+    }
+
+    when (tickDuration) {
+//        1.0 -> type = Node("type", "whole")
+//        0.5 -> type = Node("type", "whole")
+//        1.0/4 -> type = Node("type", "quarter")
+//        1.0/8 -> type = Node("type", "eighth")
+//        1.0/16 -> type = Node("type", "16th")
+//        1.0/32 -> type = Node("type", "32th")
+//        1.0/64 -> type = Node("type", "64th")
+//        1.0/128 -> type = Node("type", "128th")
+//        1.0/256 -> type = Node("type", "256th")
+    }
+
+    this += type
+
+    for (i in 0 until describe.dot) {
+        addDot()
+    }
+
+    return this
+}
+
+private fun <E> List<E>.lightClone(): MutableList<E> {
+    val list = mutableListOf<E>()
+    forEach {
+        list += it
+    }
+    return list
 }
 
 private fun noteOnMessage(code: Int, duration: Number, velocity: Number, channel: Int = 0): Message {

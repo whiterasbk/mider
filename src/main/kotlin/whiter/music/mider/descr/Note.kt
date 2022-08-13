@@ -82,7 +82,7 @@ class Note(
      * 可以保留升降号信息
      */
     override fun sharp(times: Int) {
-        alter = times
+        alter += times
     }
 
     /**
@@ -90,7 +90,7 @@ class Note(
      * 可以保留升降号信息
      */
     override fun flap(times: Int) {
-        alter = -times
+        alter -= times
     }
 
     fun upperNoteName(times: Int = 1): Note {

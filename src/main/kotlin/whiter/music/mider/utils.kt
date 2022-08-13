@@ -302,6 +302,47 @@ fun previousNoteIntervalInMajorScale(code: Int): Int {
     }
 }
 
+fun toMusicXmlKeySignature(ks: String): Pair<Int, String> {
+
+    if (ks.isEmpty()) return 0 to "major"
+
+    val prefix = if (ks.first() in "+-b#") {
+        ks.first().toString()
+    } else ""
+
+    val name = (if (ks.first() in "+-b#") {
+        ks.substring(1, ks.length)
+    } else ks)[0].toString()
+
+    val mode = (if (ks.first() in "+-b#") {
+        ks.substring(2, ks.length)
+    } else ks.substring(1, ks.length))
+
+    val rMode = if (mode == "min" || mode == "minor") "minor" else "major"
+    val rPrefix = prefix.replace("-", "b").replace("+", "#")
+
+    val fifths = when (rPrefix + name + rMode) {
+        "bCmajor", "bAminor" -> -7
+        "bGmajor", "bEminor" -> -6
+        "bDmajor", "bBminor" -> -5
+        "bAmajor", "Fminor" -> -4
+        "bEmajor", "Cminor" -> -3
+        "bBmajor", "Gminor" -> -2
+        "Fmajor", "Dminor" -> -1
+        "Cmajor", "Aminor" -> 0
+        "Gmajor", "Eminor" -> 1
+        "Dmajor", "Bminor" -> 2
+        "Amajor", "#Fminor" -> 3
+        "Emajor", "#Cminor" -> 4
+        "Bmajor", "#Gminor" -> 5
+        "#Fmajor", "#Aminor" -> 6
+
+        else -> 0
+    }
+
+    return fifths to rMode
+}
+
 // 求给定 index 之后
 fun String.nextOnlyInt(index: Int, maxBit: Int): Int {
     var sum = 0
@@ -346,3 +387,4 @@ fun List<Note>.glissandoPoints(): List<Pair<Note, Note>> {
     }
     return list
 }
+

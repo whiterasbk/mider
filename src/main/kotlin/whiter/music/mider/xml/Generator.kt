@@ -1,6 +1,7 @@
 package whiter.music.mider.xml
 
 import java.io.File
+import kotlin.properties.Delegates
 
 val xmlHead = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
 val xmlDocType = "<!DOCTYPE score-partwise PUBLIC\n" +
@@ -66,19 +67,35 @@ class AttributesElement : DeepNode("attributes") {
     }
 }
 
+/**
+ * @param perMinute tempo, 每分钟多少拍
+ * @param beatUnit 时间单位
+ */
+class DirectionElement(perMinute: Int = 80, beatUnit: DurationType = DurationType.quarter) : DeepNode("direction") {
+    init {
+        this += Node("direction-type",
+            Node("metronome",
+                Node("beat-unit", beatUnit.name),
+                Node("per-minute", perMinute)
+            )
+        )
+        this += Node("sound", "tempo" to perMinute)
+    }
+}
+
 class PitchElement(name: String, octave: Int, alter: Int? = null) : DeepNode("pitch") {
     init {
         this += Node("step", name)
-        this += Node("octave", octave)
         alter?.let {
             this += Node("alter", it)
         }
+        this += Node("octave", octave)
     }
 }
 
 class LyricElement(text: String) : DeepNode("lyric") {
     init {
-        addSyllabic("end")
+        addSyllabic("single")
         this += Node("text", text)
         addExtend()
     }
@@ -93,14 +110,49 @@ class LyricElement(text: String) : DeepNode("lyric") {
 }
 
 enum class DurationType {
-    whole, half, quater, eighth, sixteenth, demisemiquaver, hemidemisemiquaver
+    whole,
+    half,
+    quarter,
+    eighth,
+    `16th`, /*sixteenth*/
+    `32th`, /*demisemiquaver*/
+    `64th`, /*hemidemisemiquaver*/
+    `128th` /*hemidemisemiquaver*/
 }
 
-class NoteElement(name: String, octave: Int, duration: Int, alter: Int? = null) : DeepNode("note") {
+class NoteElement : DeepNode {
 
-    init {
-        this += PitchElement(name, octave, alter)
+    var duration by Delegates.notNull<Int>()
+
+    constructor(duration: Int) : super("note") {
         this += Node("duration", duration)
+        this.duration = duration
+    }
+
+    constructor(name: String, octave: Int, duration: Int, alter: Int? = null) : super("note") {
+        addPitch(name, octave, alter)
+        this += Node("duration", duration)
+        this.duration = duration
+    }
+
+    fun addPitch(name: String, octave: Int, alter: Int? = null): NoteElement {
+        this += PitchElement(name, octave, alter)
+        return this
+    }
+
+    fun addDot(): NoteElement {
+        this += Node("dot")
+        return this
+    }
+
+    fun setRest() : NoteElement {
+        this += Node("rest")
+        return this
+    }
+
+    fun setChord() : NoteElement {
+        this +=  Node("chord")
+        return this
     }
 
     fun addLyric(lyric: LyricElement) : NoteElement {
@@ -117,8 +169,35 @@ class NoteElement(name: String, octave: Int, duration: Int, alter: Int? = null) 
         return this
     }
 
+    fun addNotation(notation: NotationElement): NoteElement {
+        this += notation
+        return this
+    }
+
     fun addType(type: DurationType = DurationType.whole): NoteElement {
         this += Node("type", type.name)
+        return this
+    }
+
+    fun addType(typeName: String): NoteElement {
+        this += Node("type", typeName)
+        return this
+    }
+}
+
+class NotationElement : DeepNode("notations") {
+    fun addTied(typeName: String): NotationElement {
+        this += Node("tied", "type" to typeName)
+        return this
+    }
+
+    fun addSlur(typeName: String): NotationElement {
+        this += Node("slur", "type" to typeName)
+        return this
+    }
+
+    fun addArpeggiate(typeName: String): NotationElement {
+        this += Node("arpeggiate", "type" to typeName)
         return this
     }
 }
@@ -128,13 +207,18 @@ class MeasureElement(number: Int) : DeepNode("measure") {
         attributes["number"] = number
     }
 
-    fun addNote(note: NoteElement): MeasureElement {
-        this += note
-        return this
-    }
+//    fun addNote(note: NoteElement): MeasureElement {
+//        this += note
+//        return this
+//    }
+//
+//    fun addAttributes(attr: AttributesElement): MeasureElement {
+//        this += attr
+//        return this
+//    }
 
-    fun addAttributes(attr: AttributesElement): MeasureElement {
-        this += attr
+    fun add(node: Node): MeasureElement {
+        this += node
         return this
     }
 }
@@ -159,11 +243,15 @@ class MusicXml(private val doctype: Boolean = true) {
 
         class Measure(val measure: MeasureElement) {
             fun note(note: NoteElement) {
-                measure.addNote(note)
+                measure.add(note)
             }
 
             fun attr(attr: AttributesElement) {
-                measure.addAttributes(attr)
+                measure.add(attr)
+            }
+
+            fun direction(direction: DirectionElement) {
+                measure.add(direction)
             }
         }
 

@@ -8,6 +8,7 @@ import java.util.*
 import java.io.File
 import java.net.URL
 
+@Deprecated(message = "will be delete")
 fun toMiderStanderNoteString(list: List<InMusicScore>): String {
     val result = mutableListOf<SimpleNoteDescriber>()
 
@@ -535,7 +536,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                 '/' -> {
                     checkSuffixModifyAvailable()
                     val denominator = afterMacro.nextOnlyInt(index, 1).toDouble()
-                    skipper = 1
+                    skipper = 1 // 跳过之后一位
 
                     if (list.last() is CanModifyTargetDuration)
                         list.last().cast<CanModifyTargetDuration>().getTargetDuration().denominator = denominator
@@ -637,6 +638,7 @@ class MiderCodeParserConfiguration(build: Builder.() -> Unit = {}) {
     var formatMode: String = "internal->java-lame"
     var _isBlankReplaceWith0 = false
     var macroConfiguration = MacroConfiguration()
+    var convertMidiEventConfiguration = ConvertMidiEventConfiguration()
 
     inner class Builder {
         var isBlankReplaceWith0: Boolean = false

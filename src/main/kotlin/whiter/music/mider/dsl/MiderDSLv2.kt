@@ -111,8 +111,7 @@ class MiderDSLv2(
     // 减七和弦
     val decreasedSeventh = arrayOf(3, 3, 3)
 
-
-    private var isModifiedProgram = false
+    var convert2MidiEventConfig = ConvertMidiEventConfiguration()
 
     var pitch = 4
     var duration = 1.0 / 4 // 1.0为全音符
@@ -125,7 +124,7 @@ class MiderDSLv2(
 //                channel ++
 //            }
 
-            container += InMusicScoreMidiEvent(
+            container += InMusicScoreMidiNormalEvent(
                 EventType.program_change,
                 byteArrayOf(value.id.toByte()),
                 dispatcher.getChannel(this)
@@ -133,6 +132,13 @@ class MiderDSLv2(
             field = value
         }
     var bpm = 80
+        set(value) {
+            container += InMusicScoreMidiMetaEvent(
+                MetaEventType.META_TEMPO,
+                bpm(bpm)
+            )
+            field = value
+        }
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
     var keySignature: String? = null // getKeySignatureFromN(note('C'), major)
 
@@ -402,6 +408,19 @@ class MiderDSLv2(
     }
 
     @Tested
+    val <IM : InMusicScore> IM.dot get() = this dot 1
+
+    val <IM : InMusicScore> IM.double: IM get() {
+        this.duration.double
+        return this
+    }
+
+    val <IM : InMusicScore> IM.halve: IM get() {
+        this.duration.halve
+        return this
+    }
+
+    @Tested
     operator fun <IM : InMusicScore> IM.times(value: Number): IM {
         this.duration.multiple = value.toDouble()
         return this
@@ -580,9 +599,6 @@ class MiderDSLv2(
         attach = na
         return this
     }
-
-    @Tested
-    val Note.dot: Note get() = this dot 1
 
     @Tested
     operator fun Note.unaryPlus(): Note {
