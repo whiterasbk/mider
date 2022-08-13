@@ -41,29 +41,22 @@ fun main(args: Array<String>) {
 
     with(dsLv2) {
 
-        bpm = 120
+        bpm = 240
         keySignature = "Cmin"
 
-        碎月()
-
-//        """
-//           1[liang2]2[zhi1]3[lao2]1[hu3]
-//           1[liang2]2[zhi1]3[lao2]1[hu3]
-//           3[pao3]4[de1]5[kuai4]+
-//           3[pao3]4[de1]5[kuai4]+
-//           5[yi1]-6[zhi1]-5[mei2]-4[you3]-3[yan3]1[jing1]
-//           5[yi1]-6[zhi1]-5[mei2]-4[you3]-3[zui3]1[ba1]
-//           1[zhen1]5[qi2]↓1[guai4]+
-//           1[zhen1]5[qi2]↓1[guai4]-
-//
-//           ##5-2
-//
-//           """(false)
-
-//        C;D.dot;E.dot;
-//        F/2;F+1;G;A;  G;
-//        C;D;E;  F
-//        G;A;B; C+1
+        """
+            1[两]2[只]3[老]1[虎]
+            1[两]2[只]3[老]1[虎]
+            3[跑]4[得]5[快]+
+            3[跑]4[得]5[快]+
+      
+            5[一]-6[只]-5[没]-4[有]-3[心]1[巴]
+            5[一]-6[只]-5[没]-4[有]-3[上]1[巴]
+            
+            1[真]5[奇]↓1[怪]+
+            1[真]5[奇]↓1[怪]+
+        
+        """.toPinyin()(false)
     }
 
     val mx = Dsl2MusicXml(dsLv2)

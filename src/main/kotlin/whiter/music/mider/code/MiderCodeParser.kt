@@ -569,7 +569,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
     return list
 }
 
-class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
+class MacroConfiguration {
 
     companion object {
         val variableNamePattern = Regex("([a-zA-Z_@]\\w*)")
@@ -588,7 +588,7 @@ class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
 
     var recursionCount = 0 // 递归次数统计
     val logger: LoggerImpl = LoggerImpl()
-    //    var useStrict = false
+    // var useStrict = false
     var recursionLimit = 10
     var outerScope = mutableMapOf<String, String>()
     var macroScope = mutableMapOf<String, Pair<List<String>, String>>()
@@ -601,54 +601,67 @@ class MacroConfiguration(build: MacroConfigurationBuilder.() -> Unit = {}) {
         }
     }
 
-    init {
-        build(MacroConfigurationBuilder())
-    }
-
     class LoggerImpl {
         var info: (String) -> Unit = { println("info>>$it") }
         var error: (Exception) -> Unit = { println("err>>$it") }
     }
-
-    inner class MacroConfigurationBuilder {
-        fun loggerInfo(block: (String)-> Unit) {
-            logger.info = block
-        }
-
-        fun loggerError(block: (Exception)-> Unit) {
-            logger.error = block
-        }
-
-        fun fetchMethod(block: (String)-> String) {
-            fetch = block
-        }
-
-        fun setScopes(outer: MutableMap<String, String>, macro: MutableMap<String, Pair<List<String>, String>>) {
-            outerScope = outer
-            macroScope = macro
-        }
-
-        fun recursionLimit(times: Int) {
-            recursionLimit = times
-        }
-    }
 }
 
-class MiderCodeParserConfiguration(build: Builder.() -> Unit = {}) {
-    var formatMode: String = "internal->java-lame"
-    var _isBlankReplaceWith0 = false
-    var macroConfiguration = MacroConfiguration()
-    var convertMidiEventConfiguration = ConvertMidiEventConfiguration()
-
-    inner class Builder {
-        var isBlankReplaceWith0: Boolean = false
-            set(value) {
-                _isBlankReplaceWith0 = value
-                field = value
-            }
-
-        fun macroConfig(block: MacroConfiguration.() -> Unit) {
-            macroConfiguration.block()
-        }
+class MacroConfigurationBuilder(private val config: MacroConfiguration = MacroConfiguration()) {
+    fun loggerInfo(block: (String)-> Unit): MacroConfigurationBuilder {
+        config.logger.info = block
+        return this
     }
+
+    fun loggerError(block: (Exception)-> Unit): MacroConfigurationBuilder {
+        config.logger.error = block
+        return this
+    }
+
+    fun fetchMethod(block: (String)-> String): MacroConfigurationBuilder {
+        config.fetch = block
+        return this
+    }
+
+    fun setScopes(outer: MutableMap<String, String>, macro: MutableMap<String, Pair<List<String>, String>>): MacroConfigurationBuilder {
+        config.outerScope = outer
+        config.macroScope = macro
+        return this
+    }
+
+    fun recursionLimit(times: Int): MacroConfigurationBuilder {
+        config.recursionLimit = times
+        return this
+    }
+
+    fun build(): MacroConfiguration = config
+}
+
+data class MiderCodeParserConfiguration(
+    var formatMode: String = "internal->java-lame",
+    var isBlankReplaceWith0: Boolean = false,
+    var macroConfiguration: MacroConfiguration = MacroConfiguration(),
+    var convertMidiEventConfiguration: ConvertMidiEventConfiguration = ConvertMidiEventConfiguration()
+)
+
+class MiderCodeParserConfigurationBuilder(private val config: MiderCodeParserConfiguration = MiderCodeParserConfiguration()) {
+
+    fun setFormatMode(fm: String): MiderCodeParserConfigurationBuilder {
+        config.formatMode = fm
+        return this
+    }
+    fun setIsBlankReplaceWith0(i0: Boolean): MiderCodeParserConfigurationBuilder {
+        config.isBlankReplaceWith0 = i0
+        return this
+    }
+    fun setMacroConfiguration(mc: MacroConfiguration): MiderCodeParserConfigurationBuilder {
+        config.macroConfiguration = mc
+        return this
+    }
+    fun setConvertMidiEventConfiguration(cmec: ConvertMidiEventConfiguration): MiderCodeParserConfigurationBuilder {
+        config.convertMidiEventConfiguration = cmec
+        return this
+    }
+
+    fun build(): MiderCodeParserConfiguration = config
 }

@@ -1,7 +1,13 @@
 import cn.hutool.core.util.XmlUtil
-import whiter.music.mider.descr.CanModifyTargetDuration
+import net.sourceforge.pinyin4j.PinyinHelper
+import net.sourceforge.pinyin4j.format.HanyuPinyinCaseType
+import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat
+import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
+import net.sourceforge.pinyin4j.format.HanyuPinyinVCharType
+import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
 import whiter.music.mider.noteBaseOffset
-import java.lang.StringBuilder
+import java.io.File.separator
+
 
 fun String.formatXml(): String = XmlUtil.format(this)
 
@@ -41,4 +47,29 @@ fun generateNoteString(name: String, duration: Double = .25, pitch: Int = 4, vel
     val noteName = name.replace(Regex("\\d+"), "")
     val code = noteBaseOffset(noteName) + (rp + 1) * 12
     return "[$code=${noteName}$rp|$duration|$velocity]"
+}
+
+fun String.toPinyin(): String {
+    val pyf = HanyuPinyinOutputFormat()
+    // 设置大小写
+    pyf.caseType = HanyuPinyinCaseType.LOWERCASE
+    // 设置声调表示方法
+    pyf.toneType = HanyuPinyinToneType.WITH_TONE_NUMBER
+    // 设置字母u表示方法
+    pyf.vCharType = HanyuPinyinVCharType.WITH_V
+
+    val sb = StringBuilder()
+    val regex = Regex("[\\u4E00-\\u9FA5]+")
+
+    for (i in indices) {
+        // 判断是否为汉字字符
+        if (regex.matches(this[i].toString())) {
+            val s = PinyinHelper.toHanyuPinyinStringArray(this[i], pyf)
+            if (s != null)
+                sb += s[0]
+
+        } else sb += this[i]
+    }
+
+    return sb.toString()
 }

@@ -104,7 +104,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
 
                 val execBlock = {
                     (sequence.let {
-                        if (isStave && config._isBlankReplaceWith0) it else
+                        if (isStave && config.isBlankReplaceWith0) it else
                             it.trim().replace(Regex("( {2}| \\| )"), "0")
                     })(isStave, useMacro = false)
                 }
