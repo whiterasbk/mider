@@ -587,7 +587,7 @@ class MacroConfiguration {
     }
 
     var recursionCount = 0 // 递归次数统计
-    val logger: LoggerImpl = LoggerImpl()
+    val logger: MacroConfigurationBuilder.LoggerImpl = MacroConfigurationBuilder.LoggerImpl()
     // var useStrict = false
     var recursionLimit = 10
     var outerScope = mutableMapOf<String, String>()
@@ -601,10 +601,7 @@ class MacroConfiguration {
         }
     }
 
-    class LoggerImpl {
-        var info: (String) -> Unit = { println("info>>$it") }
-        var error: (Exception) -> Unit = { println("err>>$it") }
-    }
+
 }
 
 class MacroConfigurationBuilder(private val config: MacroConfiguration = MacroConfiguration()) {
@@ -632,6 +629,11 @@ class MacroConfigurationBuilder(private val config: MacroConfiguration = MacroCo
     fun recursionLimit(times: Int): MacroConfigurationBuilder {
         config.recursionLimit = times
         return this
+    }
+
+    class LoggerImpl {
+        var info: (String) -> Unit = { println("info>>$it") }
+        var error: (Exception) -> Unit = { println("err>>$it") }
     }
 
     fun build(): MacroConfiguration = config
