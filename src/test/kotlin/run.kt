@@ -1,5 +1,6 @@
 
 import whiter.music.mider.MidiInstrument
+import whiter.music.mider.code.produceCore
 import whiter.music.mider.dsl.*
 import java.io.File
 
@@ -25,41 +26,64 @@ import java.io.File
 
 fun main(args: Array<String>) {
 
+    val j = produceCore(">g;sing:us:1>a")
+    println(j.singSong)
+
+
+//    val k = produceCore("""
+//            >240b;Bmin>faaabDba | b-D-~~Db-a-a++ | F~~~ GFED | E-~~~EE-F-E++ | FFF-F F-GFED | bDD b-a- a++ | FFF-F F-GFED | a-~~~EC D++-+
+//        """.trimIndent())
+//
+//    k.miderDSL.container.mainList.forEach(::println)
+//    println(k.miderDSL.container.mainList.size)
+//    fromDslInstance(k.miderDSL).save("src/test/resources/4wrong.mid")
+//    playDslInstance(miderDSL = k.miderDSL)
+//    playDslInstance(miderDSL = k.miderDSL)
+
 //    val result = produceCore(""">120b>
 //
 //    """.trimMargin())
 //    result.logs.forEach{ println(it) }
 //    playDslInstancev2(miderDSL = result.miderDSL)
 
-
-    val dsLv2 = MiderDSL()
-
-    with(dsLv2) {
-
-        bpm = 240
-        keySignature = "Cmin"
-
-        """
-            1[两]2[只]3[老]1[虎]
-            1[两]2[只]3[老]1[虎]
-            3[跑]4[得]5[快]+
-            3[跑]4[得]5[快]+
-      
-            5[一]-6[只]-5[没]-4[有]-3[心]1[巴]
-            5[一]-6[只]-5[没]-4[有]-3[上]1[巴]
-            
-            1[真]5[奇]↓1[怪]+
-            1[真]5[奇]↓1[怪]+
-        
-        """.toPinyin()(false)
-    }
-
-    val mx = Dsl2MusicXml(dsLv2)
-
-//    println(convert2MusicXml.toString().formatXml())
-    File("src/test/resources/3format.xml").writeText(mx.toString().formatXml())
-
-    playDslInstance(miderDSL = dsLv2)
+//
+//    val dsLv2 = MiderDSL()
+//
+//    with(dsLv2) {
+//
+//        bpm = 240
+//        keySignature = "Bmin"
+//
+////        """
+////            1[两]2[只]3[老]1[虎]
+////            1[两]2[只]3[老]1[虎]
+////            3[跑]4[得]5[快]+
+////            3[跑]4[得]5[快]+
+////
+////            5[一]-6[只]-5[没]-4[有]-3[心]1[巴]
+////            5[一]-6[只]-5[没]-4[有]-3[上]1[巴]
+////
+////            1[真]5[奇]↓1[怪]+
+////            1[真]5[奇]↓1[怪]+
+////
+////        """
+//        "Bmin" {
+//            +"""
+//                faaabDba | b-D-~~Db-a-a++ | F~~~ GFED | E-~~~EE-F-E++ |
+//                 FFF-F F-GFED | bDD b-a- a++ | FFF-F F-GFED | a-~~~EC D++-+
+//            """.trimIndent()
+//        }
+//
+//
+//    }
+//
+//    val mx = Dsl2MusicXml(dsLv2)
+//
+//    dsLv2.container.mainList.forEach(::println)
+//
+//    File("src/test/resources/3format.xml").writeText(mx.toString().formatXml())
+//
+//    playDslInstance(miderDSL = dsLv2)
 
 
     play {

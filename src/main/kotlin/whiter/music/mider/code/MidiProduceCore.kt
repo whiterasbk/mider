@@ -3,7 +3,7 @@ package whiter.music.mider.code
 import whiter.music.mider.MidiInstrument
 import whiter.music.mider.dsl.MiderDSL
 
-val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;img)|(;pdf)|(;mscz)|(;midi)|(;i=[a-zA-Z-]+)|(;\\d/\\d))*>")
+val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;img)|(;pdf)|(;mscz)|(;sing:((zh-)?cn|jp|us)(:\\d)?)|(;midi)|(;i=[a-zA-Z-]+)|(;\\d/\\d))*>")
 
 enum class NotationType {
     PNGS, MSCZ, PDF
@@ -14,6 +14,8 @@ data class ProduceCoreResult(
     var isRenderingNotation: Boolean = false,
     var isUploadMidi: Boolean = false,
     var notationType: NotationType? = null,
+    var isSing: Boolean = false,
+    var singSong: Pair<String, Int>? = null ,  //  String: 国家, Int: 歌手代号
     val logs: MutableList<String> = ArrayList()
 )
 
@@ -28,7 +30,6 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
      */
     val build: ProduceCoreResult.() -> Unit = {
         val changeBpm = { tempo: Int -> miderDSL.bpm = tempo }
-//        val changeOuterProgram = { ins: String -> miderDSL.program = MidiInstrument.valueOf(ins) }
         val changeTimeSignature = { pair: Pair<Int, Int> -> miderDSL.timeSignature = pair }
         // todo 怪, 应该每条轨道都能设置才对
 
@@ -73,14 +74,12 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                                 val ts = it.split("/")
                                 changeTimeSignature(ts[0].toInt() to ts[1].toInt())
                             } else if (it.matches(Regex("i=[a-zA-Z-]+"))) {
-                                // 两个都设置下 (
                                 program = MidiInstrument.valueOf(it.replace("i=", ""))
-//                                changeOuterProgram(it.replace("i=", ""))
-//                                // todo fix
-//                                if (!config.formatMode.contains("muse-score")) {
-//                                    logs.add("set outer program to $program")
-//                                }
                                 logs.add("set program to $program")
+                            } else if (it.matches(Regex("sing:((zh-)?cn|jp|us)(:\\d)?"))) {
+                                isSing = true
+                                val ss = it.split(":")
+                                if (ss.size == 2) singSong = ss[1] to 0 else if (ss.size > 2) singSong = ss[1] to ss[2].toInt()
                             }
                         }
                     }
@@ -93,20 +92,13 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                 val isStave =
                     Regex("[c-gaA-G]").find(sequence) != null || Regex("(\\s*b\\s*)+").matches(sequence)
 
-//                val rendered = toInMusicScoreList(
-//                    sequence.let {
-//                        if (isStave && config._isBlankReplaceWith0) it else
-//                            it.trim().replace(Regex("( {2}| \\| )"), "0")
-//                    },
-//                    isStave = isStave,
-//                    pitch = pitch, useMacro = false
-//                )
-
                 val execBlock = {
-                    (sequence.let {
-                        if (isStave && config.isBlankReplaceWith0) it else
+                    sequence.let {
+                        if (!isStave && config.isBlankReplaceWith0) {
+                            // 如果不是五线谱 且 要替换
                             it.trim().replace(Regex("( {2}| \\| )"), "0")
-                    })(isStave, useMacro = false)
+                        } else it
+                    } (isStave, useMacro = false)
                 }
 
                 if (mode.isNotBlank()) {
@@ -115,13 +107,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                     }
                 } else execBlock()
 
-//                ifUseMode(mode) {
-//
-//                    val stander = toMiderStanderNoteString(rendered)
-//                    if (stander.isNotBlank()) !stander
-//                }
-
-                logs.add("track: ${index + 1}") //; debug()
+                logs.add("track: ${index + 1}")
             }
 
         }
