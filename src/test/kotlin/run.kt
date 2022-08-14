@@ -1,11 +1,6 @@
 
 import whiter.music.mider.MidiInstrument
-import whiter.music.mider.code.produceCore
-import whiter.music.mider.convert2MusicXml
-import whiter.music.mider.descr.ArpeggioType
-import whiter.music.mider.descr.Note
 import whiter.music.mider.dsl.*
-import whiter.music.mider.toMusicXmlKeySignature
 import java.io.File
 
 //fun main(args: Array<String>) {
@@ -37,7 +32,7 @@ fun main(args: Array<String>) {
 //    playDslInstancev2(miderDSL = result.miderDSL)
 
 
-    val dsLv2 = MiderDSLv2()
+    val dsLv2 = MiderDSL()
 
     with(dsLv2) {
 
@@ -64,10 +59,10 @@ fun main(args: Array<String>) {
 //    println(convert2MusicXml.toString().formatXml())
     File("src/test/resources/3format.xml").writeText(mx.toString().formatXml())
 
-    playDslInstancev2(miderDSL = dsLv2)
+    playDslInstance(miderDSL = dsLv2)
 
 
-    playv2 {
+    play {
 
 //        program = MidiInstrument.musicbox
 
@@ -242,7 +237,7 @@ fun main(args: Array<String>) {
     }
 }
 
-fun MiderDSLv2.碎月() {
+fun MiderDSL.碎月() {
     "Cminor" {
         // 使用 C 小调
         repeat {

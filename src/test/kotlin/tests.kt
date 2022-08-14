@@ -6,8 +6,7 @@ import whiter.music.mider.*
 import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
 import whiter.music.mider.dsl.InMusicScoreContainer
-import whiter.music.mider.dsl.MiderDSLv2
-import whiter.music.mider.dsl.play
+import whiter.music.mider.dsl.MiderDSL
 import whiter.music.mider.noteNameFromCode
 import whiter.music.mider.xml.*
 import java.io.File
@@ -974,8 +973,8 @@ class TestMiderDsl : ABTestInMusicScore() {
         ).jts(), dsl.otherTracks.last().jts())
     }
 
-    fun dsl(block : MiderDSLv2.() -> Unit): MiderDSLv2 {
-        val ret = MiderDSLv2()
+    fun dsl(block : MiderDSL.() -> Unit): MiderDSL {
+        val ret = MiderDSL()
         ret.block()
         return ret
     }
@@ -996,9 +995,9 @@ abstract class ABTestInMusicScore {
 
     protected fun List<*>.jts(separator: String = "\n"): String = joinToString(separator)
     protected fun InMusicScoreContainer.jts(separator: String = "\n") = mainList.jts(separator)
-    protected fun MiderDSLv2.jts(separator: String = "\n") = container.jts(separator)
-    protected fun MiderDSLv2.last() = container.mainList.last()
-    protected operator fun MiderDSLv2.get(index: Int): InMusicScore {
+    protected fun MiderDSL.jts(separator: String = "\n") = container.jts(separator)
+    protected fun MiderDSL.last() = container.mainList.last()
+    protected operator fun MiderDSL.get(index: Int): InMusicScore {
         return if (index >= 0)
             container.mainList[index]
         else

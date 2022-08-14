@@ -1,7 +1,7 @@
 package whiter.music.mider.code
 
 import whiter.music.mider.MidiInstrument
-import whiter.music.mider.dsl.MiderDSLv2
+import whiter.music.mider.dsl.MiderDSL
 
 val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;img)|(;pdf)|(;mscz)|(;midi)|(;i=[a-zA-Z-]+)|(;\\d/\\d))*>")
 
@@ -10,7 +10,7 @@ enum class NotationType {
 }
 
 data class ProduceCoreResult(
-    var miderDSL: MiderDSLv2 = MiderDSLv2(),
+    var miderDSL: MiderDSL = MiderDSL(),
     var isRenderingNotation: Boolean = false,
     var isUploadMidi: Boolean = false,
     var notationType: NotationType? = null,
@@ -133,7 +133,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
 }
 
 @Deprecated(message = "will be delete")
-private fun MiderDSLv2.ifUseMode(mode: String, block: MiderDSLv2.()-> Unit) {
+private fun MiderDSL.ifUseMode(mode: String, block: MiderDSL.()-> Unit) {
     if (mode.isNotBlank()) {
         mode {
             block()

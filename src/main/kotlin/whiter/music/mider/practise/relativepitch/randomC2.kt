@@ -33,19 +33,19 @@ fun practise1() {
     fun success(it: String) {
         println("${ColorUnix.ANSI_GREEN}答案正确: ${it.simpler()}${ColorUnix.ANSI_RESET}")
         right ++
-        play { '2' { !it } }
+        play { '2' { +it } }
     }
 
     fun fail(it: String) {
         println("${ColorUnix.ANSI_RED}答案错误, 正确答案: ${it.simpler()}${ColorUnix.ANSI_RESET}")
-        play { '2' { !it } }
+        play { '2' { +it } }
     }
 
     answer.forEachIndexed { index, note ->
         play {
             C[2]..C[3] under majorScale
             repeat(2) { C[2] * 3}
-            '2' { !note }
+            '2' { +note }
         }
 
         print("第${ColorUnix.ANSI_BLUE} ${index + 1} ${ColorUnix.ANSI_RESET}道题, 请输入答案: ")

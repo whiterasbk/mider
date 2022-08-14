@@ -2,64 +2,6 @@ package whiter.music.mider
 
 import whiter.music.mider.descr.*
 import whiter.music.mider.xml.*
-import java.util.StringJoiner
-import kotlin.math.pow
-
-//fun ppply(path: String, block: MiderDSLv2.() -> Unit) {
-//    val dsl = MiderDSLv2()
-//    dsl.block()
-//    val wholeTicks = 960 * 2 * 2
-//    val clock: Byte = 18
-//    val midi = MidiFile()
-//
-//    fun MidiFile.addTrack(dslObj: MiderDSLv2) {
-//        track {
-//            dslObj.container.mainList
-//                .convert2MidiMessages(
-//                    wholeTicks
-//                )
-//                .forEach {
-//                    append(it)
-//                }
-//            end()
-//        }
-//    }
-//
-//    midi.append {
-//        track {
-//            tempo(dsl.bpm)
-//
-////            dsl.keySignature?.let {
-////                meta(MetaEventType.META_KEY_SIGNATURE, (abs(it.first.semitone) or 0x80).toByte(), it.second.toByte())
-////            }
-//
-//            dsl.timeSignature?.let {
-//                meta(
-//                    MetaEventType.META_TIME_SIGNATURE,
-//                    it.first.toByte(),
-//                    log2(it.second.toDouble()).toInt().toByte(),
-//                    clock, 8
-//                )
-//            }
-//
-//            end()
-//        }
-//
-//        addTrack(dsl)
-//
-//        if (dsl.otherTracks.isNotEmpty()) {
-//            dsl.otherTracks.forEach {
-//                addTrack(it)
-//            }
-//        }
-//    }
-//
-//    midi.save(path)
-//    val sequencer = MidiSystem.getSequencer()
-//    sequencer.setSequence(midi.inStream())
-//    sequencer.open()
-//    sequencer.start()
-//}
 
 class ConvertMidiEventConfiguration {
     /**
@@ -181,24 +123,7 @@ fun List<InMusicScore>.convert2MidiMessages(
             }
 
             is Scale -> {
-
-//                val allList = it.clone().notes
                 checkList(it.clone().notes)
-//                val first = allList.removeFirst()
-//
-//                msgs += noteOnMessage(first.actualCode, previousTicks, first.velocity * velocity, modifyChannel)
-//                msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.velocity  * velocity, modifyChannel)
-//
-//                allList.forEach { note ->
-//                    msgs += noteOnMessage(note.actualCode, 0, note.velocity * velocity, modifyChannel)
-//                    msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.velocity  * velocity, modifyChannel)
-//                }
-
-//                it.notes.forEach { note ->
-//                    msgs += noteOnMessage(note.actualCode, previousTicks, note.velocity * velocity, modifyChannel)
-//                    msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.velocity  * velocity, modifyChannel)
-//                }
-
                 previousTicks = 0
             }
 
@@ -262,23 +187,6 @@ fun List<InMusicScore>.convert2MidiMessages(
                     }
 
                     checkList(allList)
-
-//                    val first = allList.removeFirst()
-//
-//                    msgs += noteOnMessage(first.actualCode, previousTicks, first.velocity * velocity, modifyChannel)
-//                    msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.velocity  * velocity, modifyChannel)
-//
-//                    allList.forEach { note ->
-//                        msgs += noteOnMessage(note.actualCode, 0, note.velocity * velocity, modifyChannel)
-//                        msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.velocity * velocity, modifyChannel)
-//                    }
-
-
-
-//                    for (i in 1 until it.notes.size) {
-//                        msgs += noteOnMessage(it.notes[0].actualCode, previousTicks, it.notes[0].velocity * velocity, modifyChannel)
-//                        msgs += noteOffMessage(it.notes[0].actualCode, it.notes[0].duration.value * wholeTicks, it.notes[0].velocity  * velocity, modifyChannel)
-//                    }
                 }
 
                 previousTicks = 0
@@ -576,49 +484,6 @@ private fun NoteElement.setDurationType(divisions: Int): NoteElement {
         }
         else -> addType(DurationType.quarter)
     }
-}
-
-private fun NoteElement.setDuration(describe: DurationDescribe, divisions: Int, tickDuration: Int): NoteElement {
-
-    var type = Node("type", "quarter")
-
-    when (describe.bar) {
-        -2 -> type = Node("type", "whole") //addType(DurationType.whole)
-        -1 -> type = Node("type", "whole") //addType(DurationType.whole)
-         0 -> type = Node("type", "quarter") //addType(DurationType.quarter)
-         1 -> type = Node("type", "eighth") //addType(DurationType.eighth)
-         2 -> type = Node("type", "16th") //addType(DurationType.`16th`)
-         3 -> type = Node("type", "32th") //addType(DurationType.`32th`)
-         4 -> type = Node("type", "64th") //addType(DurationType.`64th`)
-
-        else -> {
-            if (describe.bar > 0) {
-                type = Node("type", "${(2.0.pow(describe.bar + 2)).toInt()}th")
-            }
-
-            // 如果是二全音符
-        }
-    }
-
-    when (tickDuration) {
-//        1.0 -> type = Node("type", "whole")
-//        0.5 -> type = Node("type", "whole")
-//        1.0/4 -> type = Node("type", "quarter")
-//        1.0/8 -> type = Node("type", "eighth")
-//        1.0/16 -> type = Node("type", "16th")
-//        1.0/32 -> type = Node("type", "32th")
-//        1.0/64 -> type = Node("type", "64th")
-//        1.0/128 -> type = Node("type", "128th")
-//        1.0/256 -> type = Node("type", "256th")
-    }
-
-    this += type
-
-    for (i in 0 until describe.dot) {
-        addDot()
-    }
-
-    return this
 }
 
 private fun <E> List<E>.lightClone(): MutableList<E> {

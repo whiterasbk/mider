@@ -7,7 +7,7 @@ fun main(args: Array<String>) {
 
 
     play {
-        !"C[1]"
+        +"C[1]"
     }
 
 //    play {

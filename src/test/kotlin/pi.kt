@@ -3,6 +3,6 @@ import kotlin.math.PI
 
 fun main(args: Array<String>) {
     apply("src/test/resources/pi.mid") {
-        !PI
+        +PI.toString()
     }
 }

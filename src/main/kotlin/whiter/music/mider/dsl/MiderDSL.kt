@@ -1,88 +1,84 @@
 package whiter.music.mider.dsl
 
-// 查看源码前请自备降压药!!!
-
-import whiter.music.mider.Track
-import java.math.BigDecimal
-import java.math.BigInteger
-import kotlin.math.*
+import whiter.music.mider.*
+import whiter.music.mider.annotation.Tested
+import whiter.music.mider.code.MacroConfiguration
+import whiter.music.mider.code.toInMusicScoreList
+import whiter.music.mider.descr.*
+import kotlin.math.pow
 import kotlin.reflect.KProperty
 
-/**
- * 使用 mider dsl 产生音符并输出到指定文件
- * @param path 要保存到的路径
- * @param block 音符块
- */
-fun Track.parseSound(minimsTicks: Int, list: MutableList<MiderDSL.InListSound>) {
-    var previousDuration: Double? = null
+class InMusicScoreContainer {
+    val mainList: MutableList<InMusicScore> = mutableListOf()
+    var currentList: MutableList<InMusicScore> = mainList
 
-    for (sound in list) {
-        if (sound is MiderDSL.InListNote) {
-            if (previousDuration != null) {
-                noteOn(sound.code, (minimsTicks * 2 * previousDuration).toInt(), sound.velocity)
-                previousDuration = null
-            } else {
-                noteOn(sound.code, 0, sound.velocity)
-            }
-            noteOff(sound.code, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity)
-        } else if (sound is MiderDSL.InListChord) {
+    val mainAttach: MutableMap<String, Any> = mutableMapOf()
+    var currentAttach: MutableMap<String, Any> = mainAttach
 
-            // 新逻辑
-            if (previousDuration != null) {
-                val root = sound.code.first()
-                noteOn(root, (minimsTicks * 2 * previousDuration).toInt(), sound.velocity[0])
-                sound.code.subList(1, sound.code.size).forEachIndexed { index, it ->
-                    noteOn(it, 0, sound.velocity[index])
-                }
-                previousDuration = null
-            } else {
-                sound.code.forEachIndexed { index, it ->
-                    noteOn(it, 0, sound.velocity[index])
-                }
-            }
-            // 原逻辑
-//            sound.code.forEachIndexed { index, it ->
-//                noteOn(it, 0, sound.velocity[index])
-//            }
-            val off = sound.code.toMutableList()
-            val root = off.removeFirst()
-
-            noteOff(root, (minimsTicks * 2 * sound.duration).toInt(), sound.velocity[0])
-
-            off.forEachIndexed { index, it ->
-                noteOff(it, 0, sound.velocity[index])
-            }
-        } else if (sound is MiderDSL.InListRestNote) {
-            previousDuration = sound.duration
-        }
+    fun pushIntoContainer(im: InMusicScore) {
+        currentList += im
     }
 
-    //            for (i in mdsl.list) {
-//                val note = i.code
-//                if (i.duration == .0) {
-//                    noteOnPenultimate(note, 0, i.velocity)
-//                    noteOff(note, 0, i.velocity)
-//                } else {
-//                    noteOn(note, 0, i.velocity)
-//                    noteOff(note, (minimsTicks * 2 * i.duration).toInt(), i.velocity)
-//                }
-//            }
+    fun popFromContainer(times: Int = 1): InMusicScore? {
+        var last: InMusicScore? = null
+        for (i in 0 until times) last = currentList.removeLast()
+        return last
+    }
 
-//            meta(MetaEventType.META_END_OF_TRACK)
+//    fun pushNoteIntoContainer(note: Note) {
+//
+//    }
+
+    operator fun plusAssign(im: InMusicScore) = pushIntoContainer(im)
+
+    operator fun plusAssign(ims: List<InMusicScore>) {
+        currentList += ims
+    }
+
+    operator fun minus(times: Int): InMusicScore? = popFromContainer(times)
+
+//    operator fun set(pitch: Int, duration: Double, velocity: Int, value: Note) {
+//        pushIntoContainer(value)
+//    }
+
+    fun addAttach(key: String, any: Any) {
+        currentAttach[key] = any
+    }
+
+    fun popAttach(key: String): Any? {
+        val any = currentAttach[key]
+        currentAttach.remove(key)
+        return any
+    }
+
+    fun redirectTo(to: MutableList<InMusicScore>) {
+        currentList = to
+    }
+
+    fun redirectToMain() {
+            currentList = mainList
+    }
+
+    fun redirectAttachTo(to: MutableMap<String, Any>) {
+        currentAttach = to
+    }
+
+    fun redirectAttachToMain() {
+        currentAttach = mainAttach
+    }
 }
 
-@Deprecated("使用 MiderDSLv2 代替")
-class MiderDSL {
-    val list = mutableListOf<note>()
+class MiderDSL(
+    var dispatcher: NormalChannelDispatcher = NormalChannelDispatcher()
+) : DispatcherControlled {
+
+    val container = InMusicScoreContainer()
+
     val otherTracks = mutableListOf<MiderDSL>()
-    private val i = listOf(I(0), I(2), I(4), I(5), I(7), I(9), I(11))
-    private val entrusti = mutableMapOf<String, note>()
-    private val entrustc = mutableMapOf<String, MutableList<note>>()
-    private val __rest_instance = rest()
-    private val current: note get() = list[list.lastIndex]
-    private val last: note get() = list[list.lastIndex - 1]
-    private var isInRepeat: Boolean = false
-    private var repeatCount: Int = 0
+    private val entrusted = mutableMapOf<String, InMusicScore>()
+
+    var repeatCount: Int = 0
+
     val major = 0
     val minor = 1
     /**
@@ -115,1524 +111,584 @@ class MiderDSL {
     // 减七和弦
     val decreasedSeventh = arrayOf(3, 3, 3)
 
-    var pitch: Byte = 4
-    var duration = 1.0 // 1.0为全音符
-    var defaultNoteDuration = 4 // 默认是四分音符
-    var velocity: Byte = 100
-    var program: instrument = instrument.piano
+    var convert2MidiEventConfig = ConvertMidiEventConfiguration()
+
+    var pitch = 4
+    var duration = 1.0 / 4 // 1.0为全音符
+    var velocity = 100
+    var program: MidiInstrument = MidiInstrument.piano
+        set(value) {
+
+//            if (!isModifiedProgram) {
+//                isModifiedProgram = true
+//                channel ++
+//            }
+
+            container += InMusicScoreMidiNormalEvent(
+                EventType.program_change,
+                byteArrayOf(value.id.toByte()),
+                dispatcher.getChannel(this)
+            )
+            field = value
+        }
     var bpm = 80
+        set(value) {
+            container += InMusicScoreMidiMetaEvent(
+                MetaEventType.META_TEMPO,
+                bpm(bpm)
+            )
+            field = value
+        }
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
-    val signatureKeysList = mutableListOf<Pair<Pair<Ks, Int>, IntRange>>()
-    var keySignature: Pair<Ks, Int>? = null // getKeySignatureFromN(note('C'), major)
-    val end = 0
+    var keySignature: String? = null // getKeySignatureFromN(note('C'), major)
 
-    /**
-     * 开头不能是休止符
-     */
-    val O: rest get() {
-        if (list.size == 0)
-            push(note('O', 4))
-        else {
-            current.duration += getRealDuration(duration)
-            // throw Exception("rest note should not place at the beginning")
-        }
-        return __rest_instance
-    }
-    val C: I get() {
-        push('C')
-        return i[0]
-    }
-    val D: I get() {
-        push('D')
-        return i[1]
-    }
-    val E : I get() {
-        push('E')
-        return i[2]
-    }
-    val F : I get() {
-        push('F')
-        return i[3]
-    }
-    val G : I get() {
-        push('G')
-        return i[4]
-    }
-    val A : I get() {
-        push('A')
-        return i[5]
-    }
-    val B : I get() {
-        push('B')
-        return i[6]
-    }
-    // temp
-    val T : I get() {
-        return i.random()
+    init {
+        dispatcher.mount(this)
     }
 
-    interface InListSound : Cloneable {
-        val duration: Double
-        public override fun clone(): InListSound
+    val O: Rest get() {
+        val rest = Rest(DurationDescribe(default = duration))
+        container += rest
+        return rest
     }
 
-    class InListNote(val code: Byte, override val duration: Double, val velocity: Byte) : InListSound, Cloneable {
-        constructor(note: note): this(note.code, note.duration, note.velocity)
-        override fun toString(): String = "[$code|${duration}|$velocity]"
-        override fun clone(): InListNote {
-            return InListNote(code, duration, velocity)
-        }
+    val C: Note get() {
+        val note = creatNote("C")
+        container += note
+        return note
     }
 
-    class InListRestNote(override val duration: Double): InListSound {
-        override fun clone(): InListSound = InListRestNote(duration)
-        override fun toString(): String = "[duration: $duration]"
+    val D: Note get() {
+        val note = creatNote("D")
+        container += note
+        return note
     }
 
-    class InListChord(val code: List<Byte>, override val duration: Double, val velocity: List<Byte>): InListSound, Cloneable {
-        override fun clone(): InListChord {
-            return InListChord(code, duration, velocity)
-        }
-        override fun toString(): String = "[$code|${duration}|$velocity]"
+    val E : Note get() {
+        val note = creatNote("E")
+        container += note
+        return note
     }
 
-    fun List<InListSound>.clone(): List<InListSound> {
-        val l = mutableListOf<InListSound>()
-        forEach {
-            l += it.clone()
-        }
-        return l
+    val F : Note get() {
+        val note = creatNote("F")
+        container += note
+        return note
     }
 
-    @JvmName("cloneByteList")
-    fun List<Byte>.clone(): List<Byte> {
-        val l = mutableListOf<Byte>()
-        forEach {
-            l += it
-        }
-        return l
+    val G : Note get() {
+        val note = creatNote("G")
+        container += note
+        return note
     }
 
-    fun adjustedList(): MutableList<InListSound> {
-        val ret = mutableListOf<InListSound>()
-        var flag = true
-        val chordNotes = mutableListOf<Byte>()
-        val chordVelocity = mutableListOf<Byte>()
-        var chordDuration: Double = .0
-
-        G
-
-        list.forEachIndexed { index, it ->
-
-            if (it.name == 'O') {
-                ret += InListRestNote(it.duration)
-                return@forEachIndexed
-            }
-
-            if (it.duration != .0) {
-                if (!flag) {
-                    ret += InListChord(chordNotes.clone(), chordDuration, chordVelocity.clone())
-                    chordDuration = .0
-                    chordNotes.clear()
-                    chordVelocity.clear()
-                }
-
-                ret += InListNote(it)
-                flag = true
-            } else {
-                if (flag) {
-                    val root = ret.removeLast() as InListNote
-                    chordNotes += root.code
-                    chordVelocity += root.velocity
-                    chordDuration = root.duration
-                    flag = false
-                }
-
-                chordNotes += it.code
-                chordVelocity += it.velocity
-            }
-        }
-
-        ret.removeLast()
-
-        return ret
+    val A : Note get() {
+        val note = creatNote("A")
+        container += note
+        return note
     }
 
-    fun track(block: MiderDSL.() -> Any) {
-        val new = MiderDSL()
+    val B: Note get() {
+        val note = creatNote("B")
+        container += note
+        return note
+    }
+
+    private fun creatNote(name: String): Note = Note(name, pitch, DurationDescribe(default = duration), velocity)
+
+    fun printInserted(function: (InMusicScore) -> Unit = ::println) {
+        container.mainList.forEach(function)
+    }
+
+    @Tested
+    fun track(block: MiderDSL.() -> Unit) {
+        val new = MiderDSL(dispatcher)
+//        new.channel = channel + 1 // todo
         new.block()
         otherTracks += new
     }
 
-    /**
-     * 执行一段代码并将其返回值解析成为音符
-     * @receiver MiderDSL的实例, 方便调用dsl里的各种属性
-     */
-    operator fun (MiderDSL.() -> Any).not(): Any {
-        val res = this()
-        if (res is String) !res
-        else if (res is Number) !res
-        else if (res is BigInteger) -res
-        else if (res is BigDecimal) -res
-        return res
+    fun instrument(ins: MidiInstrument, block: MiderDSL.() -> Unit) {
+        val cache = program
+        program = ins
+        block()
+        program = cache
     }
 
-    /**
-     * 解析字符串为音符的语法糖
-     * 字符串需要的语法规则见[parse]
-     */
-    operator fun String.not() = parse(this)
+    fun instrument(ins: String, block: MiderDSL.() -> Unit) = instrument(MidiInstrument.valueOf(ins), block)
 
-    /**
-     * 将数字映射为音阶, 具体规则如下
-     * 1~7对应c~b, 称为有效音阶; 0表示休止符号, 8表示升, 9表示降, ‘.’表示附点, 这四个符号称为操作符
-     * 在8之后, 一个8表示升一个八度, 一个9表示升一个半音, 一个0表示增加一倍时长, 一个.表示增加为原来的1.5倍
-     * 在9之后, 一个8表示降一个八度, 一个9表示降一个半音, 一个0表示降二分之一时长, 一个.表示当前时长除以1.5
-     * 0在8和9之前, 表示增加一个当前时长
-     * 有效音阶之后, 出现+则表示将当前音符时值设置为原来的两倍
-     * 有效音阶之后, 出现-则表示将当前音符时值设置为原来的一半
-     * 有效音阶之后, 出现*则表示将当前音符时值设置为0
-     * 如果单独一个8或9夹在有效音阶之间, 相当于88或者99
-     * @receiver [Number] 要转换的数字
-     */
-    operator fun Number.not() = parseInt(toString())
+    @Tested
+    fun def(block: MiderDSL.() -> Unit): MiderDSL.() -> Unit = block
 
-    operator fun BigInteger.unaryMinus() = parseInt(toString())
+    @Tested
+    fun exec(block: MiderDSL.() -> Unit): MiderDSL.() -> Unit {
+        +block
+        return block
+    }
 
-    operator fun BigDecimal.unaryMinus() = parseInt(toString())
+    @Tested
+    operator fun (MiderDSL.() -> Unit).unaryPlus() = this()
 
-    fun parseInt(str: String) {
-        // todo
-        //  8 后面的音符都升八度
-        //  9 后面的音符都降八度
-        //  80后面的音符时长都变为原来的一半
-        //  90后面的音符时长都变为原来的两倍
-        //  89后面的音符都升高半音
-        //  98后面的音符都降低半音
-        //  9.重置
-        //  8.重置
-        var upFlag: Boolean? = null
-        var symbolCount = 0
+    @Tested
+    fun velocity(value: Int, block: MiderDSL.() -> Unit) {
+        val cacheVelocity = velocity
+        velocity = value
+        block()
+        velocity = cacheVelocity
+    }
 
-        val doNextList = mutableListOf<()->Unit>()
+    @Tested
+    fun inserted(block: MiderDSL.() -> Unit): MutableList<InMusicScore> {
+        // todo 考虑异步
+        val list = mutableListOf<InMusicScore>()
+        val cache = container.currentList
+        container.redirectTo(list)
+        block()
+        container.redirectTo(cache)
+//        container.redirectToMain()
+        return list
+    }
 
-        (str + "1").forEach {
-            when (it) {
-                '1', '2', '3', '4', '5', '6', '7' -> {
-                    C
-                    current + derive(it.digitToInt() - 1, majorScale).toByte()
-                    if (symbolCount == 1) {
-                        if (upFlag == true) last + 12 else if (upFlag == false) last - 1
-                    }
-                    symbolCount = 0
-                    upFlag = null
-
-                    doNextList.forEach {
-                        it()
-                    }
-
-                    doNextList.clear()
-                }
-
-                '0' -> {
-                    if (list.size == 0) C
-
-                    if (upFlag == null) {
-                        current.duration += getRealDuration(duration)
-                    } else if (upFlag == true) {
-                        current.duration *= getRealDuration(duration)
-                    } else {
-                        current.duration /= getRealDuration(duration)
-                        if (current.duration < 0) current.duration = .0
-                    }
-                }
-
-                '8' -> {
-                    symbolCount ++
-                    if (list.size == 0) C
-                    if (upFlag == null) {
-                        upFlag = true
-                    } else {
-                        if (upFlag == true) {
-                            current + 12
-                        } else if (upFlag == false) {
-                            current - 12
-                        }
-                    }
-                }
-
-                '9' -> {
-                    symbolCount ++
-                    if (list.size == 0) C
-                    if (upFlag == null) {
-                        upFlag = false
-                    } else {
-                        if (upFlag == true) {
-                            current + 1
-                        } else if (upFlag == false) {
-                            current - 1
-                        }
-                    }
-                }
-
-                '.' -> {
-                    if (list.size == 0) C
-                    if (upFlag == null || upFlag == true) current * 1.5 else current / 1.5
-                }
-
-                '*' -> {
-                    doNextList += {
-                        current.duration = getRealDuration(.0)
-                    }
-                }
-
-                '+' -> {
-                    if (list.size == 0) C
-                    if (upFlag == null || upFlag == true) current * 2.0
-                }
-
-                '-' -> {
-                    if (list.size == 0) C
-                    if (upFlag == null || upFlag == true) current / 2.0
-                }
-
-                '↑', 'i' -> {
-                    if (list.size == 0) C
-                    current + 12
-                }
-
-                '↓', '!' -> {
-                    if (list.size == 0) C
-                    current - 12
-                }
-
-                'b' -> {
-//                    if (list.size == 0) C
-                    doNextList += {
-                        current - 1
-                    }
-                }
-
-                '#' -> {
-//                    if (list.size == 0) C
-                    doNextList += {
-                        current + 1
-                    }
-                }
-
-                '&' -> {
-//                    if (list.size == 0) C
-                    doNextList += {
-                        current.sfn = SFNType.Natural
-                    }
-                }
-            }
+    @Tested
+    fun repeat(times: Int = 2, block: MiderDSL.() -> Unit) {
+        val cache = repeatCount
+        for (i in 0 until times) {
+            repeatCount = i + 1
+            block()
+            repeatCount ++
         }
-
-        pop()
+        repeatCount = cache
     }
 
     /**
-     * 在作用范围内使用给定音高
-     * 用法:
-     * ```kotlin
-     * int {
-     *  C..B
-     * }
-     * ```
-     * @receiver 指定音高
-     * @param block 音符块
+     * 配合 String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration) 使用
      */
-    operator fun Int.invoke(block: MiderDSL.() -> Any) {
-        val _pitch = pitch
-        pitch = this.toByte()
-        !block
-        pitch = _pitch
+    @Tested
+    fun scope(block: MiderDSL.() -> Unit) {
+        val cacheDuration = duration
+        val cachePitch = pitch
+        val cacheVelocity = velocity
+        block()
+        velocity = cacheVelocity
+        pitch = cachePitch
+        duration = cacheDuration
     }
 
-    fun higher(step: Byte = 1, block: MiderDSL.() -> Any) {
+    fun higher(step: Byte = 1, block: MiderDSL.() -> Unit) {
         val inc = pitch + step
         inc(block)
     }
 
-    fun lower(step: Byte = 1, block: MiderDSL.() -> Any) {
-        val inc = pitch - step
-        inc(block)
+    fun lower(step: Byte = 1, block: MiderDSL.() -> Unit) {
+        val dec = pitch - step
+        dec(block)
     }
 
     /**
-     * 在作用范围内设定任意时值
-     * 用法:
-     * ```kotlin
-     * double {
-     *  C..B
-     * }
-     * ```
-     * @receiver 指定时值
-     * @param block 音符块
+     * 根据音阶构建和弦
      */
-    operator fun Double.invoke(block: MiderDSL.() -> Any) {
-        '1' {
-            val __duration = duration
-            duration = this@invoke
-            !block
-            duration = __duration
-            end
+    @Tested
+    fun withInterval(int: Int, block: MiderDSL.() -> Unit) {
+        inserted(block).forEach {
+            container += if (it is Note) {
+                val second = it.clone()
+                if (int > 0) second.up(int) else if (int < 0) it.down(-int)
+                Chord(it, second)
+            } else it
         }
     }
 
-    /**
-     * 在作用范围内设定音符时值, 比如'8'是在8分音符下; 之所以有这个函数是因为可以避免出现小数
-     * 用法:
-     * ```kotlin
-     * char {
-     *  C..B
-     * }
-     * ```
-     * @receiver [Char] 指定音符时值
-     * @param block 音符块
-     */
-    operator fun Char.invoke(block: MiderDSL.() -> Any) {
-        if (this !in "123456789") throw Exception("can not set default note duration to $this, it should in 1-9")
-        val _dnd = defaultNoteDuration
-        defaultNoteDuration = this.digitToInt()
-        !block
-        defaultNoteDuration = _dnd
-    }
-
-    /**
-     * 在作用范围内设定音符音高和时值
-     * 用法:
-     * ```kotlin
-     * (int to double) {
-     *  C..B
-     * }
-     * ```
-     * @receiver [Pair] 指定音符音高和时值的配对时值
-     * @param block 音符块
-     */
-    operator fun Pair<Int, Double>.invoke(block: MiderDSL.() -> Any) {
-        this.first {
-            this@invoke.second {
-                '1' {
-                    !block
-                }
-            }
-        }
-    }
-
-    /**
-     * 在作用范围内设定音符音高和时值; 其实只是想避免出现小数(
-     * 用法:
-     * ```kotlin
-     * (int to char) {
-     *  C..B
-     * }
-     * ```
-     * @receiver [Pair] 指定音符音高和时值的配对时值
-     * @param block 音符块
-     */
-    @JvmName("invokeIntChar")
-    operator fun Pair<Int, Char>.invoke(block: MiderDSL.() -> Any) {
-        this.first {
-            this@invoke.second {
-                !block
-            }
-        }
-    }
-
-    /**
-     * 将作用范围内的音符转调(只进行大调之间的转换)
-     * 用法:
-     * ```kotlin
-     * (Note to Note) {
-     *  C..B
-     * }
-     * ```
-     * @receiver [Pair] 第一个[I]是作用范围内的调; 第二个[I]是要转去的调
-     * @param block 音符块
-     */
-    @JvmName("invokeII")
-    operator fun Pair<I, I>.invoke(block: MiderDSL.() -> Any) {
-        val to = first(major)
-        val from = second(major)
-        (from to to) (block)
-    }
-
-    /**
-     * 将作用范围内的音符转调, 可以支持大调, 小调的互转; 转成的小调是大调的同名小调
-     * 用法:
-     * ```kotlin
-     * (Note(mode) to Note(mode)) {
-     *  C..B
-     * }
-     * ```
-     * @receiver [Pair] 第一个[Pair]的[I]是作用范围内的调号, [Int]是大调还是小调; 第二个[Pair]同理
-     * @param block 音符块
-     */
-    @JvmName("invokeKsIntKsInt")
-    operator fun Pair<Pair<Ks, Int>, Pair<Ks, Int>>.invoke(block: MiderDSL.() -> Any): Any {
-        if (first == second) {
-            return !block
-        }
-
-        val root = first.first.code
-        val third = root + derive(2, if (first.second == major) majorScale else minorScale)
-        val sixth = root + derive(5, if (first.second == major) majorScale else minorScale)
-        val seventh = root + derive(6, if (first.second == major) majorScale else minorScale)
-
-        val dp = second.first.code - first.first.code
-        val inserted = getInsertedNotes(block)
-        inserted.first.forEach {
-            if (it.sfn != SFNType.Natural) {
-
-                val attach = if (it.code % 12 == third || it.code % 12 == sixth || it.code % 12 == seventh)
-                    if (first.second == major && second.second == minor) -1
-                    else if (first.second == minor && second.second == major) 1 else 0
-                else 0
-
-                it += (dp + attach).toByte()
-            }
-        }
-
-        return inserted.second
-    }
-
-    // 获取同名小调
-    fun toNamedMinor(name: Ks, block: MiderDSL.() -> Any) {
-        getInsertedNotes(block).first.forEach {
-            if (it.sfn != SFNType.Natural) {
-                val container = transMinorArray(name).toMutableList()
-                val sign = container.removeFirst()
-                if (sign == '&') return
-                when(sign) {
-                    '+' -> {
-                        if (it.name in container) it += 1
-                    }
-                    '-' -> {
-                        if (it.name in container) it -= 1
-                    }
-                }
-            }
-        }
-    }
-
-    //todo complete
-    private fun transMinorArray(name: Ks): Array<Char> {
-        return when(name) {
-            Ks.C -> arrayOf('-', 'E', 'A', 'B')
-            Ks.D -> arrayOf('-', 'B')
-            Ks.E -> arrayOf('+', 'F')
-            Ks.F -> arrayOf('-', 'A', 'B', 'D', 'E')
-            Ks.G -> arrayOf('-', 'B', 'E')
-            Ks.A -> arrayOf('&')
-            Ks.B -> arrayOf('+', 'F', 'C')
-            else -> TODO("current mode has not implemented")
-        }
-    }
-
-//    // todo 使用大调还是小调
-//    fun use(mode: IntArray, root: note, block: MiderDSL.() -> Any) {
-//        getInsertedNotes(block).first.forEach {
-//
-//        }
-//    }
-
-    /**
-     * 将作用范围内重复音符
-     * 用法:
-     * ```kotlin
-     * repeat(2) {
-     *  C..B
-     * }
-     * ```
-     * @param times 重复次数, 默认为2
-     * @param block 要重复的音符块
-     */
-    fun repeat(times: Int = 2, block: MiderDSL.() -> Any) {
-        if (times <= 0) return
-
-        isInRepeat = true
-        val _privousCount = repeatCount
-        for (i in 0 until times) {
-            repeatCount = i
-            val notes = getInsertedNotes(block).first
-            if (i > 0) {
-                notes.forEachIndexed { _, note ->
-                    note.repeatReplaceNotes?.let {
-                        val replaceList = it
-                        if (replaceList.isNotEmpty()) {
-                            if (replaceList.size < times - 1) {
-                                for (e in 0 until times - 1 - replaceList.size) {
-                                    replaceList.add(replaceList.last())
-                                }
-                            }
-
-                            note.copyFrom(replaceList[i - 1])
-                            note.repeatReplaceNotes = null
-
-                            if (replaceList.size > times - 1) {
-                                val rest = replaceList.subList(times - 1, replaceList.size)
-                                val index = list.indexOf(note)
-                                rest.reversed().forEach { restNotes ->
-                                    insert(index + 1, restNotes)
-                                }
-                            }
-                        }
-                    } ?: run {
-                        println("null")
-                    }
-                }
-            }
-        }
-        repeatCount = _privousCount
-        isInRepeat = false
-    }
-
-    fun replace(vararg blocks: MiderDSL.() -> Any) {
-        if (isInRepeat) {
-            if (blocks.lastIndex < repeatCount) !blocks.last()
-            else !blocks[repeatCount]
-        }
-    }
-
-    /**
-     * 将作用范围内的音符包装为一个匿名函数; (多此一举了感觉是
-     * 用法:
-     * ```kotlin
-     * val block = def {
-     *  C..B
-     * }
-     *
-     * block()
-     * ```
-     * @param block 音符块
-     * @return 包含音符块的匿名函数
-     */
-    fun def(block: MiderDSL.() -> Any): MiderDSL.() -> Any = block
-
-    fun exec(block: MiderDSL.() -> Any): MiderDSL.() -> Any {
-        !block
-        return block
-    }
-
-    fun octave(block: MiderDSL.() -> Any) = interval(12, block = block)
-
-    fun interval(interval: Int, times: Int = 1, block: MiderDSL.() -> Any) = interval(interval, times).invoke(block)
-
-    fun velocity(v: Byte, block: MiderDSL.() -> Any) {
-        val _velocity = velocity
-        velocity = v
-        !block
-        velocity = _velocity
-    }
-
-    /**
-     * 标记默认调号
-     * @param v 指定的调号
-     * @param s 大调还是小调, 可选值有major和minor
-     */
-    fun keySignature(v: I, s: Int) {
-        keySignature = getKeySignatureFromN(current, s)
-        pop()
-    }
-
-    /**
-     * 设置keySignature以后在keySignature下演奏音符, 默认为C大调
-     * @param block 音符块
-     */
-    fun atMainKeySignature(block: MiderDSL.() -> Any): Any {
-        return keySignature?.let {
-            if (keySignature!!.first == Ks.C && keySignature!!.second == major)
-                !block
-            else
-                (C(major) to it) (block)
-        } ?: run {
-            !block
-        }
-    }
-
-    /**
-     * 获取block执行期间插入的音符
-     * @param block 音符块
-     * @return [Pair].first: [List] 获取插入的音符块
-     */
-    private fun getInsertedNotes(block: MiderDSL.() -> Any): Pair<List<note>, Any> {
-        val res = mutableListOf<note>()
-
-        val start = list.size
-        val aret = !block
-        val end = list.size
-
-        if (start == end) return listOf<note>() to aret // 返回空列表
-
-        for (i in start until end) {
-            if (list[i].name == 'O') continue
-            res += list[i]
-        }
-
-        return res to aret
-    }
-
-    /**
-     * 解析字符串为音符
-     * 规则: 大体上与代码行间的规则一致
-     * @param str 要解析的字符串
-     * @param isChord 是否为和弦, 是递归参数, 不要使用默认值之外的值
-     */
-    fun parse(str: String, isChord: Boolean = false) {
-        str.trim().replace("\n", " ").replace(";", " ").replace("  ", " ").split(" ").forEach {
-            val length = it.length
-            val first_letter = it[0]
-            val iDuration = if (isChord) 0.0 else duration
-
-            if (first_letter == 'O') {
-                // rest
-                if (list.size == 0) {
-                    push(note('O', 4, .0))
-                    // throw Exception("rest note should not place at the beginning")
-                }
-
-                if (length == 1) {
-                     current.duration += getRealDuration(duration)
-                } else if (it[1] == '*') {
-                    val v = it.substring(2 until it.length).toDouble()
-                    current.duration += getRealDuration(duration) * v
-                } else if (it[1] == '/') {
-                    val v = it.substring(2 until it.length).toDouble()
-                    current.duration += getRealDuration(duration) * (1.0 / v)
-                } else throw Exception("parse failed")
-            } else if (length == 1) {
-                push(it[0], duration = iDuration)
-            } else if (length == 2) {
-                push(it[1], duration = iDuration, sfn = when(first_letter) {
-                    '-', 'b' -> SFNType.Flat
-                    '+', '#' -> SFNType.Sharp
-                    '!' -> SFNType.Natural
-                    else -> SFNType.Self
-                })
-            } else {
-                if (it.contains(":")) {
-                    it.split(":").forEachIndexed { i, e ->
-                        parse(e, i != 0)
-                    }
-                } else {
-                    var snf = SFNType.Self
-                    var withoutsnf: String = it
-
-                    if (first_letter in "-+!b#") {
-                        snf = when(first_letter) {
-                            '-', 'b' -> SFNType.Flat
-                            '+', '#' -> SFNType.Sharp
-                            '!' -> SFNType.Natural
-                            else -> SFNType.Self
-                        }
-                        withoutsnf = it.substring(1 until length)
-                    }
-
-                    val noteName = withoutsnf[0]
-
-                    if ('[' in withoutsnf) {
-                        val args = withoutsnf.substring(1 until  withoutsnf.length).replace("[", "").replace("]", "").split(',')
-                        if (args.size == 1) {
-                            push(noteName, args[0].toInt().toByte(), getRealDuration(duration), snf)
-                        } else if (args.size == 2) {
-                            push(noteName, args[0].toInt().toByte(), getRealDuration(args[1].toDouble()), snf)
-                        } else if (args.size == 3) {
-                            push(noteName, args[0].toInt().toByte(), getRealDuration(args[1].toDouble()), snf, args[2].toInt().toByte())
-                        } else throw Exception("parse failed")
-                    } else if ('+' in withoutsnf || '*' in withoutsnf || '-' in withoutsnf || '/' in withoutsnf) {
-                        val d = if ('*' in withoutsnf)
-                            (withoutsnf.split('*')[1].split('+')[0].split('-')[0]).toDouble()
-                        else if ('/' in withoutsnf) 1.0 / ((withoutsnf.split('/')[1].split('+')[0].split('-')[0]).toDouble()) else iDuration
-
-                        val p = if ('+' in withoutsnf)
-                            (withoutsnf.split('+')[1].split('*')[0].split('/')[0]).toInt().toByte()
-                        else if ('-' in withoutsnf) (-(withoutsnf.split('-')[1].split('*')[0].split('/')[0]).toInt()).toByte() else 0
-
-                        push(noteName, (pitch + p).toByte(), d, snf)
-                    } else throw Exception("parse failed")
-                }
-
-            }
-
-        }
-    }
-
-    private fun push(x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self, velocity: Byte = 100) {
-        list.add(note(x, pitch, getRealDuration(duration), velocity, sfn))
-    }
-
-    private fun push(n: note) = list.add(n)
-
-    private fun pop(n: Int = 1): MutableList<note> {
-        val popList = mutableListOf<note>()
-        for (i in 0 until n) {
-            popList += list.removeLast()
-        }
-        return popList
-    }
-
-    private fun getRealDuration(d: Double): Double {
-        if (defaultNoteDuration == 1) return d
-        if (d < 0) throw Exception("what if duration can be negative? anyway, now the duration of note should be positive")
-        return d * (1.0 / defaultNoteDuration)
-    }
-
-    private fun insert(index: Int, x: Char, pitch: Byte = this.pitch, duration: Double = this.duration, sfn: SFNType = SFNType.Self, velocity: Byte = 100) {
-        list.add(index, note(x, pitch, getRealDuration(duration), velocity, sfn))
-    }
-
-    private fun insert(index: Int, n: note) = list.add(index, n)
-
-    private fun fromNoteId(i: Byte): note {
-        val n = note('C')
-        n.code = i
-        return n
-    }
-
-    fun debug() {
-        list.forEach(::println)
-    }
-
-    operator fun Int.times(i: I) {
-        for (index in 0 until this - 1) {
-            push(current.clone())
-        }
-    }
-
-    infix fun Int.dot(times: Int) = this * Math.pow(1.5, times.toDouble())
+    infix fun Int.dot(times: Int) = this * 1.5.pow(times.toDouble())
 
     val Int.dot get() = this dot 1
 
-    companion object {
-
-        // 推断距离根音音程
-        private fun derive(index: Int, scale: Array<Int>): Int {
-            var sum = 0
-            for (i in 0 until index) {
-                sum += scale[i]
-            }
-            return sum
-        }
-
-        private fun nextNoteName(s: Char): Char = when(s) {
-            'C' -> 'D'
-            'D' -> 'E'
-            'E' -> 'F'
-            'F' -> 'G'
-            'G' -> 'A'
-            'A' -> 'B'
-            'B' -> 'C'
-            else -> throw Exception("$s not in CDEFGAB")
-        }
-
-        private fun previousNoteName(s: Char): Char = when(s) {
-            'C' -> 'B'
-            'D' -> 'C'
-            'E' -> 'D'
-            'F' -> 'E'
-            'G' -> 'F'
-            'A' -> 'G'
-            'B' -> 'A'
-            else -> throw Exception("$s not in CDEFGAB")
-        }
-
-        private fun getKeySignatureFromN(n: note, s: Int): Pair<Ks, Int> {
-            val nsk = Exception("no such signature key")
-            return when(n.name) {
-                'C' -> {
-                    if (n.sfn == SFNType.Sharp) Ks.`#C`
-                    else if (n.sfn == SFNType.Flat) Ks.bC
-                    else if (n.sfn == SFNType.Self) Ks.C
-                    else throw nsk
-                }
-                'D' -> {
-                    if (n.sfn == SFNType.Flat) Ks.bD
-                    else if (n.sfn == SFNType.Self) Ks.D
-                    else throw nsk
-                }
-                'E' -> {
-                    if (n.sfn == SFNType.Flat) Ks.bE
-                    else if (n.sfn == SFNType.Self) Ks.E
-                    else throw nsk
-                }
-                'F' -> {
-                    if (n.sfn == SFNType.Sharp) Ks.`#F`
-                    else if (n.sfn == SFNType.Self) Ks.F
-                    else throw nsk
-                }
-                'G' -> {
-                    if (n.sfn == SFNType.Flat) Ks.bG
-                    else if (n.sfn == SFNType.Self) Ks.E
-                    else throw nsk
-                }
-                'A' -> {
-                    if (n.sfn == SFNType.Flat) Ks.bA
-                    else if (n.sfn == SFNType.Self) Ks.A
-                    else throw nsk
-                }
-                'B' -> {
-                    if (n.sfn == SFNType.Flat) Ks.bB
-                    else if (n.sfn == SFNType.Self) Ks.B
-                    else throw nsk
-                }
-                else -> throw nsk
-            } to s
-        }
-
-        private fun getNoteBasicOffset(name: Char): Byte = when(name){
-            'C' -> 0
-            'D' -> 2
-            'E' -> 4
-            'F' -> 5
-            'G' -> 7
-            'A' -> 9
-            'B' -> 11
-            else -> throw Exception("no such note")
-        }
-
-        private fun <T> List<List<T>>.merge(): List<T> {
-            val temp = mutableListOf<T>()
-            forEach {
-                temp.addAll(it)
-            }
-            return temp
-        }
-
-        private fun MutableList<note>.clone(): MutableList<note> {
-            val res = mutableListOf<note>()
-            this.forEach {
-                res += it.clone()
-            }
-            return res
-        }
-
-        @JvmName("clonenote")
-        private fun List<note>.clone(): List<note> {
-            val res = mutableListOf<note>()
-            this.forEach {
-                res += it.clone()
-            }
-            return res
-        }
+    @Tested
+    operator fun Int.invoke(block: MiderDSL.() -> Unit) {
+        val cachePitch = pitch
+        pitch = this
+        block()
+        pitch = cachePitch
     }
 
-    // key signature
-    enum class Ks(val semitone: Int, val code: Int) {
-        C(0, 0), G(1, 7), D(2, 2), A(3, 9), E(4, 4), B(5, 11), `#F`(6, 6),
-        `#C`(7, 1), F(-1, 5), bB(-2, 10), bE(-3, 3), bA(-4, 8), bD(-5, 1), bG(-6, 6), bC(-7, 11)
+    @Tested
+    operator fun Char.invoke(block: MiderDSL.() -> Unit) {
+        val cacheDuration = duration
+        duration = 1.0 / (this.code - 48)
+        block()
+        duration = cacheDuration
     }
 
-    enum class instrument(val id: Int) {
-        piano(0), eletricgrandpiano(3),  musicbox(11), marimba(13), accordion(22),
-        harmonica(23), nylongitar(25), acousicbass(33),
-        violin(41), viola(42), cello(43), trumpet(57),
-        trombone(58), tuba(59), sopranosax(65), altosax(66),
-        tenorsax(67), barisax(68), oboe(69), piccolo(73),
-        flute(74), recorder(75), whistle(79), kalimba(109),
-        koto(108), fiddle(111), tinklebell(113)
+    operator fun <R> (() -> R).times(times: Int) {
+        for (i in 0 until times) this()
     }
 
-    inner class note(var name: Char, var pitch: Byte = this@MiderDSL.pitch, var duration: Double = getRealDuration(this@MiderDSL.duration), var velocity: Byte = this@MiderDSL.velocity, var sfn: SFNType = SFNType.Self): Cloneable {
+    operator fun String.unaryPlus() {
+        this()
+    }
 
-        init {
-            if (name !in "CDEFGABO") throw Exception("unsupport note: $name")
-            if (duration < 0) throw Exception("duration: $duration has to > 0")
-        }
+    //todo
+    operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
+        container += toInMusicScoreList(this, pitch, velocity, duration, isStave, useMacro, config)
+    }
 
-        var repeatReplaceNotes: MutableList<note>? = mutableListOf<note>()
+    @Tested
+    operator fun String.invoke(block: MiderDSL.() -> Unit) {
+        // use Mode
+        val prefix = if (first() in "+-b#") {
+            first().toString()
+        } else ""
 
-        var code: Byte = 0
-            get() {
-                val id = getNoteBasicOffset(name) + when(sfn) {
-                    SFNType.Sharp -> 1
-                    SFNType.Flat -> -1
-                    else -> 0
-                } + (pitch + 1) * 12
+        val name = (if (first() in "+-b#") {
+            substring(1, length)
+        } else this)[0].toString()
 
-                if (id < 0 || id > 128) throw Exception("no such note")
+        val mode = (if (first() in "+-b#") {
+            substring(2, length)
+        } else substring(1, length))
 
-                return id.toByte()
-            }
+        val notes = inserted(block)
 
-            set(value) {
+        when(mode) {
+            // 同名小调
+            "min", "minor" -> {
 
-                sfn = SFNType.Self
-
-                when(value % 12) {
-                    0 -> name = 'C'
-                    1 -> { name = 'C'; sfn = SFNType.Sharp }
-                    2 -> name = 'D'
-                    3 -> { name = 'D'; sfn = SFNType.Sharp }
-                    4 -> name = 'E'
-                    5 -> name = 'F'
-                    6 -> { name = 'F'; sfn = SFNType.Sharp }
-                    7 -> name = 'G'
-                    8 -> { name = 'G'; sfn = SFNType.Sharp }
-                    9 -> name = 'A'
-                    10 -> { name = 'A'; sfn = SFNType.Sharp }
-                    11 -> name = 'B'
+                val mapper = minorScaleMapper(prefix + name)
+                if (mapper.isEmpty()) {
+                    container += notes
+                    return
                 }
 
-                pitch = (value / 12 - 1).toByte()
-
-                field = value
-            }
-
-        operator fun minusAssign(v: Byte) {
-            code = abs((code - v) % 128).toByte()
-        }
-
-        operator fun plusAssign(v: Byte) {
-            code = ((code + v) % 128).toByte()
-        }
-
-        operator fun plus(v: Byte): note {
-            this += v
-            return this
-        }
-
-        operator fun minus(v: Byte): note {
-            this -= v
-            return this
-        }
-
-        operator fun minus(v: note): Int = this.code - v.code
-
-        operator fun times(d: Double): note {
-            duration *= d
-            return this
-        }
-
-        operator fun times(f: Float) = this * f.toDouble()
-
-        operator fun times(i: Int) = this * i.toDouble()
-
-        operator fun div(d: Double) = this * (1.0 / d)
-
-        operator fun div(f: Float) = this * (1.0 / f)
-
-        operator fun div(i: Int) = this * (1.0 / i)
-
-        override fun toString(): String = "[${sfn.symbol}$name${pitch}|${duration}|$velocity]"
-
-        public override fun clone(): note = super.clone() as note
-
-        fun copyTo(to: note) {
-            to.code = code
-            to.duration = duration
-            to.velocity = velocity
-        }
-
-        fun copyFrom(to: note) {
-            code = to.code
-            duration = to.duration
-            velocity = to.velocity
-        }
-
-    }
-
-    enum class SFNType(val symbol: Char) {
-        Flat('b'), Sharp('#'), Natural('@'), Self('&')
-    }
-
-    inner class Iin(val first: Int, val last: Int, val from: note, val to: note) {
-
-        override fun toString(): String = "first: $first; last: $last; from: $from; to: $to"
-
-        fun clear() {
-            for (i in first..(last + 1)) {
-                list.removeLast()
-            }
-        }
-
-        infix fun step(v: Byte) {
-            clear()
-            for (i in from.code until (to.code) step v.toInt()) {
-                push(fromNoteId(i.toByte()))
-            }
-        }
-
-        infix fun under(v: Array<Int>) {
-            clear()
-            var i = from.code.toInt()
-            var loopc = 0
-            while (i <= to.code) {
-                push(fromNoteId(i.toByte()))
-                i += v[loopc % v.size]
-                loopc++
-            }
-        }
-    }
-
-    inner class rest {
-        operator fun times(v: Double) {
-            current.duration -= getRealDuration(duration)
-            current.duration += getRealDuration(duration) * v
-        }
-
-        operator fun times(v: Float) = this * v.toDouble()
-
-        operator fun times(v: Int) = this * v.toDouble()
-
-        operator fun div(v: Double) = this * (1.0 / v)
-
-        operator fun div(v: Float) = this / v.toDouble()
-
-        operator fun div(v: Int) = this / v.toDouble()
-    }
-
-    inner class chord(vararg notes: note) : Cloneable {
-        constructor(vararg chords: chord) : this(*chords.map { it.note_list }.merge().toTypedArray())
-        constructor(c: chord, vararg ns: note) : this(*(c.note_list.clone() + ns).toTypedArray())
-
-        val note_list = notes.toMutableList()
-        private val rest_note_list: MutableList<note> get() {
-            val tempList = mutableListOf<note>()
-            for (i in 1 until note_list.size)
-                tempList += note_list[i]
-            return tempList
-        }
-
-        val main: note get() {
-            return getChordNotesFromList()[0]
-            // note_list[0]
-        }
-
-        val second: note get() = note_list[1]
-        val init_duration: Double = main.duration
-
-        init {
-            if (note_list.size < 2) throw Exception("a chord require at least 2 notes")
-            for (i in 1 until note_list.size) {
-                note_list[i].duration = getRealDuration(.0)
-            }
-            //note_list[1].duration = getRealDuration(.0)
-        }
-
-        operator fun get(index: Int): note = getChordNotesFromList()[index]
-
-        operator fun plus(v: I): chord {
-            current.duration = getRealDuration(.0)
-            note_list.add(current)
-            return this
-        }
-
-        operator fun plus(pitch: Int): chord {
-            if (pitch != 0) {
-                getChordNotesFromList().forEach {
-                    it.pitch = (it.pitch + pitch).toByte()
+                val matches = mapper.map {
+                    it.replace(Regex("[+\\-#b]"), "") to (it.charCount('+', '#') - it.charCount('-', 'b'))
                 }
 
-                note_list.forEach {
-                    it.pitch = (it.pitch + pitch).toByte()
-                }
-            }
-            return this
-        }
+                val mapperNames = matches.map { modeCfg -> modeCfg.first }
 
-        operator fun minus(pitch: Byte): chord = this + -pitch
-
-        operator fun plus(c: chord): chord {
-            val c2index = list.size - c.note_list.size
-            list[c2index].duration = getRealDuration(.0)
-            return chord(this, c)
-        }
-
-        operator fun times(v: Double): chord {
-            main.duration = getRealDuration(v)
-            note_list[0].duration = getRealDuration(v)
-            return this
-        }
-
-        operator fun times(v: Float): chord = this * v.toDouble()
-
-        operator fun times(v: Int): chord = this * v.toDouble()
-
-        operator fun div(v: Double): chord = this * (1.0 / v)
-
-        operator fun div(v: Float): chord = this / v.toDouble()
-
-        operator fun div(v: Int): chord = this / v.toDouble()
-
-        private fun getChordNotesFromList(): List<note> {
-            return list.filterIndexed { index, _ ->
-                index >= list.size - note_list.size
-            }
-        }
-
-        infix fun inverse(v: I) = this / T
-
-        // todo fix different pitch
-        operator fun div(v: I): chord {
-            val bass = current.code
-            val pList = pop()
-            val chord_codes = getChordNotesFromList()
-            val notes_codes = chord_codes.map { it.code }
-
-            if (bass % 12 !in notes_codes.map { it % 12 }) throw Exception("given note: ${pList[0].name} not in chord: $this")
-
-            val target = chord_codes.find { bass % 12 == it.code % 12 }
-            target?.let { b ->
-                chord_codes.forEach {
-                    if (it.code < b.code) {
-                        it.pitch++
+                notes.operationExtendNotes {
+                    if (!it.isNature && it.actualName in mapperNames) {
+                        val alter = matches.find { pair -> it.actualName == pair.first }!!.second
+                        if (alter > 0) it.sharp(alter) else if (alter < 0) it.flap(-alter)
                     }
                 }
-            } ?: throw Exception("given note: ${pList[0].name} not in chord: $this")
 
-            return this
-        }
-
-        val sus4: chord get() {
-            val chord_notes = getChordNotesFromList()
-            val second = chord_notes[1]
-            when(second.code - main.code) {
-                4 -> second.code ++
-                3 -> second.code = (second.code + 2).toByte()
-                else -> {
-                    throw Exception("this chord did not contain a three degree note from root")
-                }
-            }
-            return chord(*chord_notes.clone().toTypedArray())
-        }
-
-        val sus: chord get() = sus4
-
-        val sus2: chord get() {
-            val chord_notes = getChordNotesFromList()
-            val second = chord_notes[1]
-            when(second.code - main.code) {
-                4 -> second.code = (second.code - 2).toByte()
-                3 -> second.code--
-                else -> {
-                    throw Exception("this chord did not contain a three degree note from root")
-                }
+                container += notes
             }
 
-            return chord(*chord_notes.clone().toTypedArray())
-        }
-
-        operator fun getValue(nothing: Nothing?, property: KProperty<*>): chord {
-            entrustc[property.name]?.let { list += it.clone() } ?: throw Exception("id ${property.name} is miss match")
-            return this
-        }
-
-        infix fun into(id: String): chord {
-            entrustc[id] = note_list.clone()
-//            list -= note_list.toSet()
-            pop(note_list.size)
-            return this
-        }
-
-        override fun toString(): String = "<$note_list>"
-    }
-
-    inner class interval(var value: Int, val times: Int = 1) {
-        operator fun invoke(block: MiderDSL.() -> Any): Any {
-
-            val notes = getInsertedNotes(block)
-            notes.first.reversed().forEachIndexed { index, root ->
-                genList(root).forEachIndexed { i, it ->
-                    insert(list.size - (index * (1 + times) + i), it)
+            "maj", "major", "" -> {
+                val offset = noteBaseOffset(prefix.replace("+", "#").replace("-", "b") + name)
+                if (offset == 0) {
+                    container += notes
+                    return
                 }
+
+                notes.operationExtendNotes {
+                    if (!it.isNature) {
+                        it.sharp(offset)
+                    }
+                }
+
+                container += notes
             }
 
-            return notes.second
-        }
-
-        private fun genList(root: note): MutableList<note> {
-            val tList = mutableListOf<note>()
-            for (i in 1 .. times) {
-                val note = root.clone()
-                note.duration = .0
-                if (value > 0) {
-                    note += (i * value).toByte()
-                } else {
-                    note -= abs(i * value).toByte()
-                }
-                tList += note
-            }
-            return tList
+            else -> TODO("not yet implement")
         }
     }
 
-    // 使用给定调式
-    fun useMode(mode: String, block: MiderDSL.() -> Any) {
-        C
-        val cmode = if (mode.first() in "+-b#") {
-            current.sfn = if (mode.first() == '+' || mode.first() == '#') SFNType.Sharp else SFNType.Flat
-            mode.substring(1, mode.length)
-        } else mode
-        current.name = cmode.first()
-
-        val mm = cmode.substring(1, cmode.length)
-        val mv = when(mm) {
-            "min", "minor" -> minor
-            else -> major
-        }
-        T (mv, block)
+    @Tested
+    operator fun <IM: InMusicScore> Int.times(im: IM): IM {
+        for (index in 0 until this - 1)
+            container += im.clone()
+        return im
     }
 
-    inner class I(val id: Byte) {
+    @Tested
+    infix fun <IM : InMusicScore> IM.dot(times: Int): IM {
+        this.duration.points(times)
+        return this
+    }
 
-        constructor(n: Char) : this(getNoteBasicOffset(n))
+    @Tested
+    val <IM : InMusicScore> IM.dot get() = this dot 1
 
-        init {
-            // if (id !in byteArrayOf(0, 2, 4, 5, 7, 9, 11)); // do sth.?
-        }
+    val <IM : InMusicScore> IM.double: IM get() {
+        this.duration.double
+        return this
+    }
 
-        operator fun getValue(nothing: Nothing?, property: KProperty<*>): I {
-            entrusti[property.name]?.let { push(it) } ?: throw Exception("id ${property.name} is miss match")
-            return this
-        }
+    val <IM : InMusicScore> IM.halve: IM get() {
+        this.duration.halve
+        return this
+    }
 
-        // todo 获得关系小调
-        infix fun relative(block: MiderDSL.() -> Any) {
-            !block
-        }
+    @Tested
+    operator fun <IM : InMusicScore> IM.times(value: Number): IM {
+        this.duration.multiple = value.toDouble()
+        return this
+    }
 
-        // 获取同名小调
-        infix fun minor(block: MiderDSL.() -> Any) {
-            atMainKeySignature {
+    @Tested
+    operator fun <IM : InMusicScore> IM.div(value: Number): IM {
+        this.duration.denominator = value.toDouble()
+        return this
+    }
 
-            }
-        }
+    @Tested
+    operator fun <NC : NoteContainer> NC.plus(note: Note): NC {
+        container - 1
+        this += note
+        return this
+    }
 
-        infix fun into(id: String): I {
-            entrusti[id] = current.clone()
-            pop()
-            return this
-        }
+    @Tested
+    operator fun <NC : NoteContainer> NC.minus(note: Note): NC {
+        container - 1
+        this -= note
+        return this
+    }
 
-        // inline operator fun rem(name: String) = this into name
+    @Tested
+    operator fun <IM: InMusicScore> IM.getValue(nothing: Nothing?, property: KProperty<*>): IM {
+        val im: IM = (entrusted[property.name]?.let {
+            val clone = it.clone()
+            container += clone
+            clone
+        } ?: throw Exception("id ${property.name} is miss match")) as IM
 
-        operator fun invoke(mf: Int): Pair<Ks, Int> {
-            val res = getKeySignatureFromN(current, mf)
-            pop()
-            return res
-        }
+        return im
+    }
 
-        operator fun invoke(mf: Int = major, block: MiderDSL.() -> Any) {
-            val tothat = this(mf)
-            if (mf == minor) {
-                toNamedMinor(tothat.first, block)
-            } else {
-                val originKeySignature = keySignature
-                keySignature?.let {
-                    keySignature = tothat
-                    (it to tothat) (block)
-                } ?: run {
-                    keySignature = tothat
-                    (C(major) to tothat)(block)
+    @Tested
+    infix fun <IM: InMusicScore> IM.into(id: String): IM {
+        entrusted[id] = this.clone()
+        container - 1
+        return this
+    }
+
+    operator fun <IM> Rest.plus(im: IM): IM = im
+
+    @Tested
+    infix fun Glissando.gliss(note: Note): Glissando = this + note
+
+    @Tested
+    val Glissando.wave: Glissando get() {
+        isWave = true
+        return this
+    }
+
+    val Glissando.hasBlack: Glissando get() {
+        isContainBlack = true
+        return this
+    }
+
+    @Tested
+    val Appoggiatura.back: Appoggiatura get() {
+        isFront = false
+        return this
+    }
+
+    @Tested
+    operator fun Chord.plus(pitch: Int): Chord {
+        notes.forEach { it += pitch }
+        return this
+    }
+
+    @Tested
+    operator fun Chord.minus(pitch: Int): Chord {
+        notes.forEach { it -= pitch }
+        return this
+    }
+
+    @Tested
+    operator fun Chord.div(note: Note): Chord {
+
+        container - 1
+
+        if (note.actualCode % 12 !in notes.map { it.actualCode % 12 })
+            throw Exception("given note: ${note.name} not in $this")
+
+        val target = notes.find { note.actualCode % 12 == it.actualCode % 12 }
+        target?.let { b ->
+            notes.forEach {
+                if (it.actualCode < b.actualCode) {
+                    it.pitch ++
                 }
-                keySignature = originKeySignature
             }
-        }
+        } ?: throw Exception("given note: ${note.actualName} not in $this")
 
-        operator fun get(pitch: Byte, duration: Double = this@MiderDSL.duration) : I {
-            if (pitch != 4.toByte()) {
-                current.pitch = pitch
-            }
-            current.duration = getRealDuration(duration)
-            return this
-        }
-
-        operator fun get(pitch: Byte, duration: Int): I = this[pitch, duration.toDouble()]
-
-        operator fun get(pitch: Byte, duration: Float): I = this[pitch, duration.toDouble()]
-
-        override fun toString(): String = "大弦嘈嘈如急雨，小弦切切如私语。嘈嘈切切错杂弹，大珠小珠落玉盘。"
-
-        operator fun not(): I {
-            current.sfn = SFNType.Natural
-            return this
-        }
-
-        infix fun up(v: Int): I {
-            current += v.toByte()
-            return this
-        }
-
-        infix fun down(v: Int): I {
-            current -= v.toByte()
-            return this
-        }
-
-        val dot: I get() = this dot 1
-
-        infix fun dot(v: Int): I {
-            current.duration *= Math.pow(1.5, v.toDouble())
-            return this
-        }
-
-
-        infix fun triad(mode: Int): chord = if (mode == major) this triad majorChord else this triad minorChord
-
-        // 构建三和弦
-        infix fun triad(mode: Array<Int>): chord {
-            // todo 根据调性
-            return atMainKeySignature {
-                val second = current.clone()
-                second.duration = getRealDuration(.0)
-                second += mode[0].toByte()
-                val third = second.clone()
-                third += mode[1].toByte()
-                val chord = chord(current, second, third)
-                push(second.clone())
-                push(third.clone())
-                chord
-            } as chord
-        }
-
-        // 构建七和弦
-        infix fun seventh(mode: Array<Int>): chord {
-            val tr = T triad mode
-            return atMainKeySignature {
-                val fourth = tr.note_list[2].clone()
-                fourth += mode[2].toByte()
-                push(fourth.clone())
-                chord(tr, fourth)
-            } as chord
-        }
-
-        val addNinth: chord get() {
-            val tr = T triad majorChord
-            return atMainKeySignature {
-                val fourth = tr.note_list[0].clone()
-                fourth.duration = getRealDuration(.0)
-                fourth += 14.toByte()
-                push(fourth.clone())
-                chord(tr, fourth)
-            } as chord
-        }
-
-        val add9: chord get() = addNinth
-
-        // 构建九和弦
-        infix fun ninths(mode: Array<Int>): chord {
-            val tr = T seventh mode
-            return atMainKeySignature {
-                val fifth = tr.note_list[3].clone()
-                fifth += mode[3].toByte()
-                push(fifth.clone())
-                chord(tr, fifth)
-            } as chord
-        }
-
-        operator fun rangeTo(x: I) : Iin {
-            val lastIndex = list.lastIndex
-
-            val from = last
-            val to = current
-
-            if (from.code > to.code) throw Exception("from.code has to > to.code")
-
-            pop(2)
-
-            for (i in from.code..to.code) {
-                push(fromNoteId(i.toByte()))
-            }
-
-            return Iin(lastIndex, list.lastIndex, from, to)
-        }
-
-        operator fun unaryPlus() : I {
-            current.sfn = SFNType.Sharp
-            return this
-        }
-
-        operator fun unaryMinus(): I {
-            current.sfn = SFNType.Flat
-            return this
-        }
-
-        operator fun plus(x: Byte) : I {
-            val origin = current.pitch
-            current.pitch = (x + origin).toByte()
-            return this
-        }
-
-        operator fun plus(x: I): chord = chord(last, current)
-
-        operator fun plusAssign(x: Byte) {
-            current += x
-        }
-
-        operator fun minus(x: Byte) : I {
-            val origin = current.pitch
-            current.pitch = (origin - x).toByte()
-            return this
-        }
-
-        operator fun minus(i: I): interval {
-            val int = interval( last - current)
-            pop(2)
-            return int
-        }
-
-        operator fun minusAssign(x: Byte) {
-            current -= x
-        }
-
-        operator fun times(x: Double) : I {
-            current.duration = getRealDuration(x)
-            return this
-        }
-
-        operator fun times(x: Int) : I = this * x.toDouble()
-
-        operator fun times(x: Float) : I = this * x.toDouble()
-
-        operator fun div(x: Double) : I = this * (1.0 / x)
-
-        operator fun div(x: Float) : I = this / x.toDouble()
-
-        operator fun div(x: Int) : I = this / x.toDouble()
-
-        infix fun or(i: I): I {
-            last.repeatReplaceNotes?.let {
-                it += current
-                pop()
-            }
-            return this
-        }
-
-        infix fun C(x: I): I {
-            insert(list.lastIndex, 'C')
-            return i[0]
-        }
-
-        infix fun D(x: I): I {
-            insert(list.lastIndex, 'D')
-            return i[1]
-        }
-
-        infix fun E(x: I): I {
-            insert(list.lastIndex, 'E')
-            return i[2]
-        }
-
-        infix fun F(x: I): I {
-            insert(list.lastIndex, 'F')
-            return i[3]
-        }
-
-        infix fun G(x: I): I {
-            insert(list.lastIndex, 'G')
-            return i[4]
-        }
-
-        infix fun A(x: I): I {
-            insert(list.lastIndex, 'A')
-            return i[5]
-        }
-
-        infix fun B(x: I): I {
-            insert(list.lastIndex, 'B')
-            return i[6]
-        }
-
+        return this
     }
+
+    infix fun Chord.inverse(note: Note): Chord = this / note
+
+    val Chord.sus4: Chord get() {
+
+        when(notes[1].actualCode - rootNote.actualCode) {
+            4 -> notes[1].sharp()
+            3 -> notes[1].sharp(2)
+            else -> {
+                throw Exception("this chord did not contain a three degree note from root")
+            }
+        }
+        return this
+    }
+
+    @Tested
+    val Chord.sus: Chord get() = sus4
+
+    @Tested
+    val Chord.sus2: Chord get() {
+
+        when(notes[1].actualCode - rootNote.actualCode) {
+            4 -> notes[1].flap(2)
+            3 -> notes[1].flap()
+            else -> {
+                throw Exception("this chord did not contain a three degree note from root")
+            }
+        }
+
+        return this
+    }
+
+    @Tested
+    val Chord.ascending: Chord get() {
+        this.arpeggio = ArpeggioType.Ascending
+        return this
+    }
+
+    @Tested
+    val Chord.downward: Chord get() {
+        this.arpeggio = ArpeggioType.Downward
+        return this
+    }
+
+    @Tested
+    operator fun Note.plus(pitch: Int): Note {
+        this += pitch
+        return this
+    }
+
+    @Tested
+    operator fun Note.minus(pitch: Int): Note {
+        this -= pitch
+        return this
+    }
+
+    operator fun Note.minus(note: Note): Int {
+        val interval = this.actualCode - note.actualCode
+        container - 2
+        return interval
+    }
+
+    @Tested
+    operator fun Note.not(): Note {
+        this.isNature = true
+        return this
+    }
+
+    @Tested
+    operator fun Note.get(pitch: Int, multiple: Number = .25): Note {
+        this.pitch = pitch
+        this.duration.default = multiple.toDouble()
+        return this
+    }
+
+    @Tested
+    operator fun Note.get(lyric: String): Note {
+        val na = NoteAttach()
+        na.lyric = lyric
+        attach = na
+        return this
+    }
+
+    @Tested
+    operator fun Note.unaryPlus(): Note {
+        sharp()
+        return this
+    }
+
+    @Tested
+    operator fun Note.unaryMinus(): Note {
+        flap()
+        return this
+    }
+
+    @Tested
+    operator fun Note.rem(value: Int): Note {
+        this.velocity = value
+        return this
+    }
+
+    @Tested
+    operator fun Note.plus(note: Note): Chord {
+        val chord = Chord(this, note)
+        container - 2
+        container += chord
+        return chord
+    }
+
+    @Tested
+    operator fun Note.rangeTo(note: Note): Scale {
+        val scale = Scale.generate(this, note)
+        container - 2
+        container += scale
+        return scale
+    }
+
+    @Tested
+    infix fun Note.triad(mode: Array<Int>): Chord {
+        val second = clone()
+        second.up(mode[0])
+        val third = second.clone()
+        third.up(mode[1])
+
+        val chord = Chord(this, second, third)
+        container - 1
+        container += chord
+        return chord
+    }
+
+    @Tested
+    infix fun Note.seventh(mode: Array<Int>): Chord {
+        val tr = this triad mode
+        val fourth = tr.last().clone()
+        fourth.up(mode[2])
+        tr += fourth
+        return tr
+    }
+
+    @Tested
+    infix fun Note.add9(mode: Array<Int>): Chord {
+        val tr = this triad mode
+        val fourth = tr.last().clone()
+        fourth.up(mode[2] + mode[3])
+        tr += fourth
+        return tr
+    }
+
+    @Tested
+    infix fun Note.ninths(mode: Array<Int>): Chord {
+        val se = this seventh mode
+        val fifth = se.last().clone()
+        fifth.up(mode[3])
+        se += fifth
+        return se
+    }
+
+    @Tested
+    infix fun Note.gliss(note: Note): Glissando {
+        val gliss = Glissando(this, note)
+        container - 2
+        container += gliss
+        return gliss
+    }
+
+    @Tested
+    infix fun Note.appoggiatura(note: Note): Appoggiatura {
+        val app = Appoggiatura(this, note)
+        container - 2
+        container += app
+        return app
+    }
+
+    override fun toString(): String = "大弦嘈嘈如急雨，小弦切切如私语。嘈嘈切切错杂弹，大珠小珠落玉盘。"
 }
