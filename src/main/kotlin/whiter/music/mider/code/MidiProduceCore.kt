@@ -89,7 +89,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                                     2 -> singSong = "+id" to ss[1]
                                     3 -> singSong = ss[1] to ss[2]
                                 }
-                            } else if (it.matches(Regex("\\d{0,3}%"))) {
+                            } else if (it.matches(Regex("\\d{1,3}%"))) {
                                 val v = it.replace("%", "").toInt()
                                 if (v in 0..100) volume = v.toFloat() / 100
                             } else if (it.matches(Regex("/\\d+"))) {
