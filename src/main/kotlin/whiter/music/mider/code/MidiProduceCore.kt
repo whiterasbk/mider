@@ -133,6 +133,7 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
 
     val result = ProduceCoreResult()
     result.build()
+
     return result
 }
 

@@ -42,7 +42,6 @@ fun List<InMusicScore>.convert2MidiMessages(
     }
 
     forEach {
-
         when (it) {
             is Note -> {
                 msgs += noteOnMessage(it.actualCode, previousTicks, it.velocity * volume, modifyChannel)

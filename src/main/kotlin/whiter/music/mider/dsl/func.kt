@@ -4,6 +4,7 @@ import whiter.music.mider.MetaEventType
 import whiter.music.mider.MidiFile
 import whiter.music.mider.convert2MidiMessages
 import whiter.music.mider.convert2MusicXml
+import whiter.music.mider.descr.InMusicScore
 import whiter.music.mider.xml.MusicXml
 import java.io.File
 import java.util.*
@@ -114,7 +115,14 @@ fun fromDslInstance(dsl: MiderDSL): MidiFile {
 }
 
 fun Dsl2MusicXml(dsl: MiderDSL, divisions: Int = 480): MusicXml {
-    return dsl.container.mainList.convert2MusicXml(dsl.bpm,
+    // todo 将 track 和 part 对应
+    val allTracks = mutableListOf<InMusicScore>()
+    allTracks += dsl.container.mainList
+    dsl.otherTracks.forEach {
+        allTracks += it.container.mainList
+    }
+
+    return allTracks.convert2MusicXml(dsl.bpm,
         dsl.timeSignature?.first ?: 4,
         dsl.timeSignature?.second ?: 4,
         divisions,

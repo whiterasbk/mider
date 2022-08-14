@@ -27,9 +27,14 @@ import java.io.File
 
 fun main(args: Array<String>) {
 
-    val j = produceCore(">g;sing:zh:f1;/2>abbbbbbbb%127")
-    println(j.singSong)
-    playDslInstance(miderDSL = j.miderDSL)
+    val pc = produceCore(">g;Bmin;sing>c[两]d[只]e[老]c[虎]")
+    val dsl2MusicXml = Dsl2MusicXml(pc.miderDSL)
+    println(dsl2MusicXml.toString().formatXml())
+
+//    val j = produceCore(">g;sing:zh:f1;/2>abbbbbbbb%127")
+//    println(j.singSong)
+    playDslInstance(miderDSL = pc.miderDSL)
+    playDslInstance(miderDSL = pc.miderDSL)
 
 //    val k = produceCore("""
 //            >240b;Bmin>faaabDba | b-D-~~Db-a-a++ | F~~~ GFED | E-~~~EE-F-E++ | FFF-F F-GFED | bDD b-a- a++ | FFF-F F-GFED | a-~~~EC D++-+
