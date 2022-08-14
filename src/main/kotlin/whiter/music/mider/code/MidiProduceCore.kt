@@ -3,7 +3,12 @@ package whiter.music.mider.code
 import whiter.music.mider.MidiInstrument
 import whiter.music.mider.dsl.MiderDSL
 
-val startRegex = Regex(">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|(;img)|(;pdf)|(;mscz)|(;sing:((zh-)?cn|jp|us)(:\\d)?)|(;midi)|(;i=[a-zA-Z-]+)|(;\\d/\\d))*>")
+val startRegex = Regex(
+    ">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|" +
+           "(;img)|(;pdf)|(;mscz)|(;sing(:[a-zA-Z-]{2,4})?(:[fm]?\\d+)?)|" +
+           "(;midi)|(;\\d{1,3}%)|(;/\\d+)|(;\\d+dB)|" +
+           "(;i=([a-zA-Z-]+|\\d+))|(;\\d/\\d))*>"
+)
 
 enum class NotationType {
     PNGS, MSCZ, PDF
@@ -15,7 +20,7 @@ data class ProduceCoreResult(
     var isUploadMidi: Boolean = false,
     var notationType: NotationType? = null,
     var isSing: Boolean = false,
-    var singSong: Pair<String, Int>? = null ,  //  String: 国家, Int: 歌手代号
+    var singSong: Pair<String, String>? = null ,  //  String: 国家, Int: 歌手代号
     val logs: MutableList<String> = ArrayList()
 )
 
@@ -73,13 +78,26 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                             } else if (it.matches(Regex("\\d/\\d"))) {
                                 val ts = it.split("/")
                                 changeTimeSignature(ts[0].toInt() to ts[1].toInt())
-                            } else if (it.matches(Regex("i=[a-zA-Z-]+"))) {
+                            } else if (it.matches(Regex("i=([a-zA-Z-]+|\\d+)"))) {
                                 program = MidiInstrument.valueOf(it.replace("i=", ""))
                                 logs.add("set program to $program")
-                            } else if (it.matches(Regex("sing:((zh-)?cn|jp|us)(:\\d)?"))) {
+                            } else if (it.matches(Regex("sing(:[a-zA-Z-]{2,4})?(:[fm]?\\d+)?"))) {
                                 isSing = true
                                 val ss = it.split(":")
-                                if (ss.size == 2) singSong = ss[1] to 0 else if (ss.size > 2) singSong = ss[1] to ss[2].toInt()
+                                when(ss.size) {
+                                    1 -> singSong = "cn" to "f1"
+                                    2 -> singSong = "+id" to ss[1]
+                                    3 -> singSong = ss[1] to ss[2]
+                                }
+                            } else if (it.matches(Regex("\\d{0,3}%"))) {
+                                val v = it.replace("%", "").toInt()
+                                if (v in 0..100) volume = v.toFloat() / 100
+                            } else if (it.matches(Regex("/\\d+"))) {
+                                val p = it.replace("/", "").toInt()
+                                duration = 1.0 / p
+                            } else if (it.matches(Regex("\\d+dB"))) {
+                                val v = it.replace("dB", "").toInt()
+                                if (v in 0..127) velocity = v
                             }
                         }
                     }

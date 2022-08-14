@@ -1,6 +1,7 @@
 
 import whiter.music.mider.MidiInstrument
 import whiter.music.mider.code.produceCore
+import whiter.music.mider.code.startRegex
 import whiter.music.mider.dsl.*
 import java.io.File
 
@@ -26,9 +27,9 @@ import java.io.File
 
 fun main(args: Array<String>) {
 
-    val j = produceCore(">g;sing:us:1>a")
+    val j = produceCore(">g;sing:zh:f1;/2>abbbbbbbb%127")
     println(j.singSong)
-
+    playDslInstance(miderDSL = j.miderDSL)
 
 //    val k = produceCore("""
 //            >240b;Bmin>faaabDba | b-D-~~Db-a-a++ | F~~~ GFED | E-~~~EE-F-E++ | FFF-F F-GFED | bDD b-a- a++ | FFF-F F-GFED | a-~~~EC D++-+

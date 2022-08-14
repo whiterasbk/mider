@@ -75,6 +75,7 @@ fun fromDslInstance(dsl: MiderDSL): MidiFile {
             dslObj.container.mainList
                 .convert2MidiMessages(
                     wholeTicks,
+                    volume = dslObj.volume,
                     config = dslObj.convert2MidiEventConfig
                 )
                 .forEach {

@@ -79,6 +79,8 @@ class MiderDSL(
 
     var repeatCount: Int = 0
 
+    var volume: Float = 1f // 轨道音量
+
     val major = 0
     val minor = 1
     /**
