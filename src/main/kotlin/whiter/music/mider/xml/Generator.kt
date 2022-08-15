@@ -8,6 +8,10 @@ val xmlDocType = "<!DOCTYPE score-partwise PUBLIC\n" +
         "    \"-//Recordare//DTD MusicXML 3.0 Partwise//EC\"\n" +
         "    \"http://www.musicxml.org/dtds/partwise.dtd\">"
 
+object LyricInception {
+    var replace: ((String) -> String)? = null
+}
+
 /**
  * music xml 根节点
  */
@@ -96,7 +100,11 @@ class PitchElement(name: String, octave: Int, alter: Int? = null) : DeepNode("pi
 class LyricElement(text: String) : DeepNode("lyric") {
     init {
         addSyllabic("single")
-        this += Node("text", text)
+
+        this += LyricInception.replace?.let {
+            Node("text", it(text))
+        } ?: Node("text", text)
+
         addExtend()
     }
 

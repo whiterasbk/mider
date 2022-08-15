@@ -3,6 +3,7 @@ import whiter.music.mider.MidiInstrument
 import whiter.music.mider.code.produceCore
 import whiter.music.mider.code.startRegex
 import whiter.music.mider.dsl.*
+import whiter.music.mider.xml.LyricInception
 import java.io.File
 
 //fun main(args: Array<String>) {
@@ -27,14 +28,23 @@ import java.io.File
 
 fun main(args: Array<String>) {
 
-    val pc = produceCore(">g;Bmin;sing>c[两]d[只]e[老]c[虎]")
-    val dsl2MusicXml = Dsl2MusicXml(pc.miderDSL)
-    println(dsl2MusicXml.toString().formatXml())
 
-//    val j = produceCore(">g;sing:zh:f1;/2>abbbbbbbb%127")
-//    println(j.singSong)
-    playDslInstance(miderDSL = pc.miderDSL)
-    playDslInstance(miderDSL = pc.miderDSL)
+    val core = produceCore(">g;4x>oo1231[十分]")
+    LyricInception.replace = { it.toPinyin() }
+    val musicXml = Dsl2MusicXml(core.miderDSL)
+    println(musicXml.toString().formatXml())
+
+
+
+
+//    val pc = produceCore(">g;Bmin;sing>c[两]d[只]e[老]c[虎]")
+//    val dsl2MusicXml = Dsl2MusicXml(pc.miderDSL)
+//    println(dsl2MusicXml.toString().formatXml())
+//
+////    val j = produceCore(">g;sing:zh:f1;/2>abbbbbbbb%127")
+////    println(j.singSong)
+//    playDslInstance(miderDSL = pc.miderDSL)
+//    playDslInstance(miderDSL = pc.miderDSL)
 
 //    val k = produceCore("""
 //            >240b;Bmin>faaabDba | b-D-~~Db-a-a++ | F~~~ GFED | E-~~~EE-F-E++ | FFF-F F-GFED | bDD b-a- a++ | FFF-F F-GFED | a-~~~EC D++-+

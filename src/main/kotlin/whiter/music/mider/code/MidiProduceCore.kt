@@ -6,7 +6,7 @@ import whiter.music.mider.dsl.MiderDSL
 val startRegex = Regex(
     ">(g|f|\\d+b)((;[-+b#]?[A-G](min|maj|major|minor)?)|(;\\d)|" +
            "(;img)|(;pdf)|(;mscz)|(;sing(:[a-zA-Z-]{2,4})?(:[fm]?\\d+)?)|" +
-           "(;midi)|(;\\d{1,3}%)|(;/\\d+)|(;\\d+dB)|" +
+           "(;midi)|(;\\d{1,3}%)|(;/\\d+)|(;\\d+dB)|(;[↑↓]+)|(;\\d+(\\.\\d+)?x)|" +
            "(;i=([a-zA-Z-]+|\\d+))|(;\\d/\\d))*>"
 )
 
@@ -36,7 +36,6 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
     val build: ProduceCoreResult.() -> Unit = {
         val changeBpm = { tempo: Int -> miderDSL.bpm = tempo }
         val changeTimeSignature = { pair: Pair<Int, Int> -> miderDSL.timeSignature = pair }
-        // todo 怪, 应该每条轨道都能设置才对
 
         noteLists.forEachIndexed { index, content ->
 
@@ -98,6 +97,10 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                             } else if (it.matches(Regex("\\d+dB"))) {
                                 val v = it.replace("dB", "").toInt()
                                 if (v in 0..127) velocity = v
+                            } else if (it.matches(Regex("\\d+(\\.\\d+)?x"))) {
+                                duration /= it.replace("x", "").toDouble()
+                            } else if (it.matches(Regex("[↑↓]+"))) {
+                                // pitch higher or lower
                             }
                         }
                     }
