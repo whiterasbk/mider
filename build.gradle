@@ -16,7 +16,7 @@ apply plugin: 'application'
 
 mainClassName = 'whiter.music.mider.practise.absolutepitch.RandomC2Kt'
 
-def projectVersion = '0.9.3'
+def projectVersion = '0.9.8'
 
 group 'whiter.music'
 version projectVersion

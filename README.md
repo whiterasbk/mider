@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation "com.github.whiterasbk:mider:beta0.9.3"
+    implementation "com.github.whiterasbk:mider:beta0.9.8"
 }
 ```
 然后就可以使用啦
@@ -88,38 +88,45 @@ fun main(vararg args: String) {
 import whiter.music.mider.dsl.play
 
 fun main(vararg args: String) {
+
+    pitch = 5
+    bpm = 120
+    duration = 1.0/8
+    keySignature = "Eminor"
+    
     play {
-        E(minor) {
+        "Eminor" {
 
             pitch = 5
             bpm = 120
 
-            val a0 = def { G; E; G } // 定义成 def 函数以便复用, 得到的复用对象可以通过!实现复用
+            val a0 = def { G; E; G } // 定义成 def 函数以便复用, 得到的复用对象可以通过+实现复用
             val a1 = def { A * 2.dot; G / 2; F / 2 } // dot 是加附点
             val a2 = def { G * 2.dot; A / 2; G / 2 }
             val a3 = def { F; E; D; F }
             val a4 = def { F * 2.dot; A / 2; G / 2 }
 
-            val p1 = def { !a0; B; !a1 }
+            val p1 = def { +a0; B; +a1 }
 
-            repeat {
-                !p1
-                !a2; replace({ !a3 }, { A; C + 1; B; F })
+            if (repeatCount == 1)
+                +a3
+            else {
+                A; C+1; B; F
             }
 
-            val p2 = exec { !a0; D + 1; !a1 } // 等同于 def 但是先执行一遍再返回复用对象
-            val p3 = exec { !a4; D * 2 + 1; B; A } // +-*/可以结合使用, 但是要注意优先级问题
-            val p4 = exec { G; B - 1; E; B; !a1 }
-            val p5 = exec { !a4; F; C + 1; B; F }
+            val p2 = exec { +a0; D + 1; +a1 } // 等同于 def 但是先执行一遍再返回复用对象
+            val p3 = exec { +a4; D * 2 + 1; B; A } // +-*/可以结合使用, 但是要注意优先级问题
+            val p4 = exec { G; B - 1; E; B; +a1 }
+            val p5 = exec { +a4; F; C + 1; B; F }
 
-            !p1
-            !a2; !a3
-            !p1
-            !p5
-            !p2
-            !p3
-            !p4
-            !p5
+            +p1
+            +a2; +a3
+            +p1
+            +p5
+            +p2
+            +p3
+            +p4
+            +p5
 
             val a5 = def { E; C + 1 }
             '2' {
@@ -131,18 +138,18 @@ fun main(vararg args: String) {
                 val a6 = exec { A / 2; G / 2 }
 
                 3 * G; A
-                !a5; B; !a6
+                +a5; B; +a6
                 B; A; D + 1; C / 2 + 1; B / 2
             }
             B * 2; C + 1; repeat { B; A }; G
-            E * 2; !a5; B * 2; G; A
+            E * 2; +a5; B * 2; G; A
             val A2d = exec { A * 2.dot }; F;
             val a7 = exec { G; A; B }; C + 1
             val p6 = exec { B * 2.dot; G; F * 2; G; A }
-            !A2d; 2 * A; G; F; G
-            E * 2.dot; !a5; B; A; G
-            !A2d; 2 * F; !a7
-            !p6
+            +A2d; 2 * A; G; F; G
+            E * 2.dot; +a5; B; A; G
+            +A2d; 2 * F; +a7
+            +p6
 
             '2' {
                 B; A; C + 1; B
