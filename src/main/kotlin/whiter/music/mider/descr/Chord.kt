@@ -8,6 +8,8 @@ class Chord(vararg firstNotes: Note) : InMusicScore, HasFlatAndSharp, HasOctave,
 
     var attach: ChordAttach? = null
     var arpeggio: ArpeggioType = ArpeggioType.None
+    var isIndependentDuration: Boolean = false
+
     init {
         if (firstNotes.isEmpty()) throw Exception("a chord needs notes to buildup")
     }

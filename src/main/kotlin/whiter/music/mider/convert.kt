@@ -111,9 +111,25 @@ fun List<InMusicScore>.convert2MidiMessages(
                             msgs += noteOnMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
                         }
 
-                        msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.velocity * volume, modifyChannel)
-                        it.rest.forEach { note ->
-                            msgs += noteOffMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                        if (it.isIndependentDuration) {
+                            // 找出时值最短的, 最长的便是 和弦时值
+                            val notes = it.clone().notes
+                            notes.sortWith { n1, n2 ->
+                                (480 * (n1.duration.value - n2.duration.value)).toInt()
+                            }
+
+                            var previousCount = 0
+                            notes.forEach { n ->
+                                val duration = (n.duration.value * wholeTicks - previousCount).toInt()
+                                msgs += noteOffMessage(n.actualCode, duration, n.velocity  * volume, modifyChannel)
+                                previousCount += duration
+                            }
+
+                        } else {
+                            msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.velocity * volume, modifyChannel)
+                            it.rest.forEach { note ->
+                                msgs += noteOffMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                            }
                         }
                     }
                 }

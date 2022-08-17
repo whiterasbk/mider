@@ -134,13 +134,13 @@ class MiderDSL(
             field = value
         }
     var bpm = 80
-        set(value) {
-            container += InMusicScoreMidiMetaEvent(
-                MetaEventType.META_TEMPO,
-                bpm(bpm)
-            )
-            field = value
-        }
+//        set(value) {
+//            container += InMusicScoreMidiMetaEvent(
+//                MetaEventType.META_TEMPO,
+//                bpm(bpm)
+//            )
+//            field = value
+//        }
     var timeSignature: Pair<Int, Int>? = null //= 4 to 4
     var keySignature: String? = null // getKeySignatureFromN(note('C'), major)
 

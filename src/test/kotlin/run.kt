@@ -29,10 +29,14 @@ import java.io.File
 fun main(args: Array<String>) {
 
 
-    val core = produceCore(">g;4x>oo1231[十分]")
-    LyricInception.replace = { it.toPinyin() }
+    val core = produceCore(">160b>000 1++:2-:3-- t")
+//    LyricInception.replace = { it.toPinyin() }
     val musicXml = Dsl2MusicXml(core.miderDSL)
-    println(musicXml.toString().formatXml())
+//    fromDslInstance(core.miderDSL).save("tmp.mid")
+//    File("tmp.xml").writeText(musicXml.toString().formatXml())
+//    println(musicXml.toString().formatXml())
+
+    playDslInstance(miderDSL = core.miderDSL)
 
 
 

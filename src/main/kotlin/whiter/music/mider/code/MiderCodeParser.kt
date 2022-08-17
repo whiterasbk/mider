@@ -292,6 +292,10 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                         is Glissando -> {
                             list.last().cast<Glissando>().isContainBlack = true
                         }
+
+                        is Chord -> {
+                            list.last().cast<Chord>().isIndependentDuration = true
+                        }
                     }
                 }
 
