@@ -11,8 +11,10 @@ class DurationDescribe (
 
     var multiple: Double = 1.0
     var durationList = mutableListOf<DurationDescribe>()
+    var attach: Double = .0
+
     val baseValue: Double get() = default * 2.0.pow(bar) * 1.5.pow(dot)
-    val value: Double get() = calc() + multiple / denominator * baseValue
+    val value: Double get() = calc() + multiple / denominator * baseValue + attach
 
     private fun calc(): Double {
         return durationList.sumOf { it.value }

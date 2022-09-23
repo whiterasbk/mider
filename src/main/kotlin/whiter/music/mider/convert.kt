@@ -142,6 +142,12 @@ fun List<InMusicScore>.convert2MidiMessages(
                 previousTicks = 0
             }
 
+            is TieNote -> {
+                msgs += noteOnMessage(it.main.actualCode, previousTicks, it.main.velocity * volume, modifyChannel)
+                msgs += noteOffMessage(it.main.actualCode, it.duration.value * wholeTicks, it.main.velocity  * volume, modifyChannel)
+                previousTicks = 0
+            }
+
             is Rest -> {
                 previousTicks += (it.duration.value * wholeTicks).toInt()
             }
@@ -357,6 +363,18 @@ private fun InMusicScore.toNoteElement(divisions: Int, duration: Int = durationI
             )
         }
 
+        is TieNote -> {
+            mutableListOf(
+                autoAlter(duration)
+                    .setDurationType(divisions)
+                    .let { self ->
+                        if (main.attach != null && main.attach?.lyric != null)
+                            self.addLyric(main.attach?.lyric ?: "")
+                        self
+                    }
+            )
+        }
+
         is Rest -> {
             val element = NoteElement(duration).setDurationType(divisions)
             element.children.nodes.add(0, Node("rest"))
@@ -407,6 +425,9 @@ private fun Note.autoAlter(givenDuration: Int): NoteElement {
             pitch, givenDuration, aAlter)
     }
 }
+
+private fun TieNote.autoAlter(givenDuration: Int): NoteElement = main.autoAlter(givenDuration)
+
 
 private fun NoteElement.setDurationType(divisions: Int): NoteElement {
     return when (divisions.toFloat() / duration) {

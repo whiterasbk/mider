@@ -29,7 +29,8 @@ import java.io.File
 fun main(args: Array<String>) {
 
 
-    val core = produceCore(">160b>000 1++:2-:3-- t")
+//    val core = produceCore(">160b>000 1++:2-:3-- t")
+    val core = produceCore(">400b>00 1231 1231")
 //    LyricInception.replace = { it.toPinyin() }
     val musicXml = Dsl2MusicXml(core.miderDSL)
 //    fromDslInstance(core.miderDSL).save("tmp.mid")

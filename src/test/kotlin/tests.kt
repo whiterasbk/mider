@@ -80,14 +80,14 @@ class TestsXml {
         <note>
             <pitch>
                 <step>E</step>
-                <octave>5</octave>
                 <alter>-1</alter>
+                <octave>5</octave>
             </pitch>
             <duration>24</duration>
             <tie type="start"></tie>
             <type>whole</type>
             <lyric>
-                <syllabic>end</syllabic>
+                <syllabic>single</syllabic>
                 <text>meil</text>
                 <extend></extend>
             </lyric>
@@ -231,14 +231,23 @@ class TestMiderCodeParser : ABTestInMusicScore() {
             "[67=G4|$duration|$velocity]",
             "[70=#A4|$duration|$velocity]",
             "[70=#A4|$duration|$velocity]"
-        ).joinToString("\n")
+        ).jts()
 
-        assertEquals(expected, list.joinToString("\n"))
+        assertEquals(expected, list.jts())
         assert(list[3].cast<Note>().isNature)
 
-        val numList = toInMusicScoreList("#1$2b3&45♯67'", isStave = false, useMacro = false)
+        val numList = toInMusicScoreList("#1$2b3@45♯67'", isStave = false, useMacro = false)
 
         assertEquals(list, numList)
+    }
+
+    @Test
+    fun testTieNote() {
+        val list = toInMusicScoreList("#c&#c d-&a.&d..")
+        assertEquals(listOf(
+            generate("#C", duration*2),
+            generate("D", duration/2 + duration*1.5 + duration*1.5*1.5),
+        ).jts(), list.jts())
     }
 
     @Test

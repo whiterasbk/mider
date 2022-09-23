@@ -362,7 +362,7 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                     }
                 }
 
-                '&', '♮' -> {
+                '@', '♮' -> {
                     doAfter += {
                         if (list.last() is Note)
                             list.last().cast<Note>().isNature = true
@@ -386,8 +386,27 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                     if (list.last() is HasFlatAndSharp) list.last().cast<HasFlatAndSharp>().sharp()
                 }
 
+                '&' -> {
+                    if (list.isEmpty()) throw Exception("`&` requires at least 2 notes to combine.")
+
+                    val tie: TieNote = if (list.last() is Note) {
+                        val t = TieNote(list.removeLast().cast())
+                        list += t
+                        t
+                    } else if (list.last() is TieNote) {
+                        list.last().cast()
+                    } else throw Exception("build tie failed: unsupported type: ${list.last()}")
+
+                    doAfter += {
+                        when (val beAdded = list.removeLast()) {
+                            is Note -> tie += beAdded
+                            else -> tie += Note("C", duration = beAdded.duration)
+                        }
+                    }
+                }
+
                 ':' -> {
-                    if (list.isEmpty()) throw Exception("the root is necessary for creating a chord")
+                    if (list.isEmpty()) throw Exception("the root is necessary for creating a chord.")
 
                     val chord: Chord = if (list.last() is Note) {
                         val c = Chord(list.removeLast().cast())
