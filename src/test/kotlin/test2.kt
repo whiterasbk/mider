@@ -1,6 +1,16 @@
+import whiter.music.mider.MidiInstrument
 import whiter.music.mider.dsl.play
+import javax.sound.midi.Instrument
 
 fun main(args: Array<String>) {
+
+    play {
+        C;D;E
+
+        hex("i 10")
+        hex("on bC")
+        hex("off bC 480")
+    }
 
 //    play {
 ////        +"{:i 1} {:on bC2} {:off bc2,480}"
