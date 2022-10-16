@@ -5,11 +5,19 @@ import javax.sound.midi.Instrument
 fun main(args: Array<String>) {
 
     play {
-        C;D;E
+//        C;D;E
 
-        hex("i 10")
-        hex("on bC")
-        hex("off bC 480")
+        hex("i1=musicbox")
+//        hex("on c")
+//        hex("on d")
+        hex("on E")
+//        hex("off c~")
+//        hex("off d~")
+        hex("off E+")
+
+        hex("00 c0 21")
+        hex("00 90 45 64")
+        hex("83 60 80 45 64")
     }
 
 //    play {

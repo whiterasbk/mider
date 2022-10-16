@@ -1,7 +1,7 @@
 package whiter.music.mider.descr
 
 import whiter.music.mider.*
-import java.util.StringJoiner
+import kotlin.contracts.Returns
 
 /**
  * 位于乐谱中的 MIDI 事件
@@ -28,11 +28,34 @@ class InMusicScoreMidiMetaEvent(val type: MetaEventType, val args: ByteArray): I
     override fun toString(): String = "[MIDIMetaEvent:$type:${args.toList()}]"
 }
 
-class InMusicScoreEvent(val hex: ByteArray) : InMusicScore {
+class InMusicScoreEvent : InMusicScore {
 
-    constructor(hexData: String) : this(hexData.parseToMidiHexBytes())
+    private var pure = true
+    private lateinit var hexString: String
+    private lateinit var hex: ByteArray
+    private val octave: Int
+    private val velocity: Int
+
+    constructor(hex: ByteArray, octave: Int = 4, velocity: Int = 100) {
+        pure = true
+        this.hex = hex
+        this.octave = octave
+        this.velocity = velocity
+    }
+
+    constructor(hexData: String, octave: Int = 4, velocity: Int = 100) {
+        pure = false
+        hexString = hexData
+        this.octave = octave
+        this.velocity = velocity
+    }
 
     override val duration = DurationDescribe(default = .0) // unreachable
 
-    override fun clone(): InMusicScore = InMusicScoreEvent(hex.clone())
+    fun getHex(wholeTick: Int): ByteArray {
+        println(hexString.parseToMidiHex(wholeTick, octave, velocity).showHex())
+        return if (pure) hex else hexString.trim().parseToMidiHex(wholeTick, octave, velocity)
+    }
+
+    override fun clone(): InMusicScore = InMusicScoreEvent(hex.clone(), octave)
 }

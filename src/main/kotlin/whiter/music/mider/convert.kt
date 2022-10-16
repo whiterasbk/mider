@@ -222,7 +222,7 @@ fun List<InMusicScore>.convert2MidiMessages(
                 msgs += MetaMessage(MetaEvent(it.type, it.args))
             }
 
-            is InMusicScoreEvent -> msgs += HexMessage(it.hex)
+            is InMusicScoreEvent -> msgs += HexMessage(it.getHex(wholeTicks))
         }
     }
 

@@ -160,52 +160,56 @@ fun ByteArray.showHex() = map {
     } else Integer.toHexString(it.toInt()).substring(6, 8)
 }
 
+
+inline fun Array<Int>.asByteArray() = map { it.toByte() }.toByteArray()
+
+@Deprecated("use String.parseToMidiHex instead")
 fun String.parseToMidiHexBytes(delimiter: String = trim().let {
     if (it.split(" ").size == 1 && it.length != 2) "" else " "
 }) : ByteArray = trim().let {
     val params = it.split(Regex(" "), 2)[1].split(Regex(", *| +"))
     when {
         it.startsWith("o") -> {
-            val list = mutableListOf<Byte>()
-            val operationOnNote = { opc: Int ->
-                val code = params[0].let { name ->
-                    noteBaseOffset(name.replace(Regex("\\d"), "").let { noteName ->
-                        when (noteName.length) {
-                            1 -> noteName.last().uppercase()
-                            2 -> noteName.first().toString() + noteName.last().uppercase()
-                            else -> throw Exception("no such note name")
-                        }
-                    }) + (
-                            (name.last().toString().toIntOrNull() ?:
-                            if (name.matches(Regex("[#b]?[A-G]"))) 5
-                            else if (name.matches(Regex("[#b]?[a-g]"))) 4
-                            else throw Exception("name matches failed."))
-                                    + 1) * 12
-                }
-
-                val time = if (1 in params.indices)
-                    params[1].toInt().asvlByteArray()
-                else byteArrayOf(0)
-
-                val velocity = if (2 in params.indices)
-                    params[2].toInt()
-                else 100
-
-                val channel = if (3 in params.indices)
-                    params[3].toInt()
-                else 0
-
-                time.forEach(list::add)
-                list += (opc or channel).toByte()
-                list += code.toByte()
-                list += velocity.toByte()
-                // on name time velocity channel
+        val list = mutableListOf<Byte>()
+        val operationOnNote = { opc: Int ->
+            val code = params[0].let { name ->
+                noteBaseOffset(name.replace(Regex("\\d"), "").let { noteName ->
+                    when (noteName.length) {
+                        1 -> noteName.last().uppercase()
+                        2 -> noteName.first().toString() + noteName.last().uppercase()
+                        else -> throw Exception("no such note name")
+                    }
+                }) + (
+                        (name.last().toString().toIntOrNull() ?:
+                        if (name.matches(Regex("[#b]?[A-G]"))) 5
+                        else if (name.matches(Regex("[#b]?[a-g]"))) 4
+                        else throw Exception("name matches failed."))
+                                + 1) * 12
             }
-            if (it.startsWith("on")) operationOnNote(0x90)
-            else if (it.startsWith("off")) operationOnNote(0x80)
-            else throw Exception("no such operation: $it")
-            list.toByteArray()
+
+            val time = if (1 in params.indices)
+                params[1].toInt().asvlByteArray()
+            else byteArrayOf(0)
+
+            val velocity = if (2 in params.indices)
+                params[2].toInt()
+            else 100
+
+            val channel = if (3 in params.indices)
+                params[3].toInt()
+            else 0
+
+            time.forEach(list::add)
+            list += (opc or channel).toByte()
+            list += code.toByte()
+            list += velocity.toByte()
+            // on name time velocity channel
         }
+        if (it.startsWith("on")) operationOnNote(0x90)
+        else if (it.startsWith("off")) operationOnNote(0x80)
+        else throw Exception("no such operation: $it")
+        list.toByteArray()
+    }
 
         it.startsWith("i") -> {
             val list = mutableListOf<Byte>()
