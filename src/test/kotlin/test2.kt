@@ -2,6 +2,14 @@ import whiter.music.mider.dsl.play
 
 fun main(args: Array<String>) {
 
+//    play {
+////        +"{:i 1} {:on bC2} {:off bc2,480}"
+////        +"{00904564}{8360804564}"
+//        hex("00 c0 21")
+//        hex("00 90 45 64")
+//        hex("83 60 80 45 64")
+//    }
+
 
 //    with(MDSL()) {
 //        C D E F C+1 F D*5+1 F E D C*0; D+1

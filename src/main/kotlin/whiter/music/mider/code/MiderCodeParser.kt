@@ -487,6 +487,12 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                     }
                 }
 
+                '{' -> {
+                    val hexData = afterMacro.nextGivenChar(index, '}', 1024)
+                    skipper = hexData.count()
+                    list += InMusicScoreEvent(hexData)
+                }
+
                 ';' -> {
                     if (list.isEmpty()) throw Exception("the main note is necessary for creating a appoggiatura")
 

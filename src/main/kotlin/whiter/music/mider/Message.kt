@@ -41,6 +41,31 @@ interface IMessage: HasByteSize, HexData {
     fun passDataToChannel(channel: WritableByteChannel, buffer: ByteBuffer)
 }
 
+class HexMessage(private val data: ByteArray) : IMessage {
+
+
+
+    override val deltaTimeArray: ByteArray get() {
+        throw Exception("deltaTimeArray is part of data in HexMessage")
+    }
+
+    override fun passDataToChannel(channel: WritableByteChannel, buffer: ByteBuffer) {
+        channel.write(with(buffer) {
+            clear()
+            put(data)
+            flip()
+        })
+    }
+
+    override fun getOccupiedBytes(): Int = data.size
+
+    @Deprecated("use passDataToFileChannel")
+    override fun getHexDataAsByteBuffer(): ByteBuffer {
+        throw Exception("use passDataToFileChannel")
+    }
+
+}
+
 class Message(val event: Event, val time: Int = 0) : IMessage {
     constructor(eventType: EventType, note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0)
             : this(Event(eventType, byteArrayOf(note.id, velocity), channel), time)
@@ -59,6 +84,7 @@ class Message(val event: Event, val time: Int = 0) : IMessage {
 
     override fun getOccupiedBytes() = event.getOccupiedBytes() + deltaTimeArray.size
 
+    @Deprecated("use passDataToFileChannel")
     override fun getHexDataAsByteBuffer(): ByteBuffer {
         val occupied = getOccupiedBytes()
         val buffer = ByteBuffer.allocate(occupied)

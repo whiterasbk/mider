@@ -45,8 +45,6 @@ class Track {
         meta(MetaEventType.META_TEMPO, *bpm(bpm))
     }
 
-
-
 //    fun message(eventType: EventType, vararg data: Byte) {
 //        append(Message(eventType, data = data))
 //    }
@@ -73,6 +71,10 @@ class Track {
 
     fun message(event: Event, time: Int = 0) {
         append(Message(event, time))
+    }
+
+    fun message(msg: IMessage) {
+        append(msg)
     }
 
     fun messagePenultimate(event: Event, time: Int = 0) {
@@ -107,8 +109,6 @@ class Track {
         noteOff(note.id, time, velocity, channel)
     }
 
-
-
     fun note(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         noteOn(note, time, velocity, channel)
     }
@@ -116,11 +116,6 @@ class Track {
     fun note(note: MidiNote, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         note(note.id, time, velocity, channel)
     }
-
-
-
-
-
 
     fun noteOnPenultimate(note: Byte, time: Int = 0, velocity: Byte = 100, channel: Byte = 0) {
         messagePenultimate(Event(EventType.note_on, byteArrayOf(note, velocity), channel), time)
@@ -138,7 +133,27 @@ class Track {
         noteOffPenultimate(note.id, time, velocity, channel)
     }
 
+    @JvmName("hexArray")
+    fun hex(bytes: ByteArray) {
+        message(HexMessage(bytes))
+    }
 
+    @JvmName("hexVarargByte")
+    fun hex(vararg bytes: Byte) = hex(bytes)
+
+    fun hex(hex: String, delimiter: String = " ") {
+        hex(hex.let { hex ->
+            if (delimiter == "") {
+                val list = mutableListOf<String>()
+                hex.forEachIndexed { index, c ->
+                    if (index % 2 == 1) list += hex[index - 1] + c.toString()
+                }
+                list
+            } else hex.trim().split(delimiter)
+        }.map {
+            it.toInt(16).toByte()
+        }.toByteArray())
+    }
 
 //
 //    fun message(

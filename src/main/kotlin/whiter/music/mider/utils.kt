@@ -155,6 +155,76 @@ inline fun <reified T : Any> Any?.cast(): T {
 }
 
 
+fun String.parseToMidiHexBytes(delimiter: String = trim().let {
+    if (it.split(" ").size == 1 && it.length != 2) "" else " "
+}) : ByteArray = trim().let {
+    if (it.startsWith(":")) {
+        val list = mutableListOf<Byte>()
+        val params = it.split(Regex(" "), 2)[1].split(Regex("[, ]"))
+        val operationOnNote = { opc: Int ->
+            val code = params[0].let { name ->
+                noteBaseOffset(name.replace(Regex("\\d"), "").let { noteName ->
+                    when (noteName.length) {
+                        1 -> noteName.last().uppercase()
+                        2 -> noteName.first().toString() + noteName.last().uppercase()
+                        else -> throw Exception("no such note name")
+                    }
+                }) + (
+                        (name.last().toString().toIntOrNull() ?:
+                        if (name.matches(Regex("[#b]?[A-G]"))) 5
+                        else if (name.matches(Regex("[#b]?[a-g]"))) 4
+                        else throw Exception("name matches failed."))
+                                + 1) * 12
+            }
+
+            var time = byteArrayOf(0)
+            var velocity = 100
+            var channel = 0
+
+            if (1 in params.indices)
+                time = params[1].toInt().asvlByteArray()
+
+            if (2 in params.indices)
+                velocity = params[2].toInt()
+
+            if (3 in params.indices)
+                channel = params[3].toInt()
+
+            time.forEach(list::add)
+            list += (opc or channel).toByte()
+            list += code.toByte()
+            list += velocity.toByte()
+            // :noteon name time velocity channel
+        }
+
+        when {
+            it.startsWith(":noteon ") or it.startsWith(":on ") -> operationOnNote(0x90)
+
+            it.startsWith(":noteoff ") or it.startsWith(":off ") -> operationOnNote(0x80)
+
+            it.startsWith(":i ") -> {
+                list += 0x0
+                list += 0xc0.toByte()
+                list += params[0].toByte()
+            }
+
+            else -> throw Exception("no such operation: $it")
+        }
+
+        list.toByteArray()
+    } else (if (delimiter == "") {
+        if (it.length % 2 != 0) throw Exception("length of given hex data is expected to be even.")
+        else {
+            val list = mutableListOf<String>()
+            it.forEachIndexed { index, char ->
+                if (index % 2 == 1) list += it[index - 1].toString() + char
+            }
+            list
+        }
+    } else it.split(delimiter)).map { byte -> byte.toInt(16).toByte() }.toByteArray()
+}
+
+
 // todo 和 dsl 里的方法合并
 
 /**

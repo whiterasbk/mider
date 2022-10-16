@@ -221,6 +221,8 @@ fun List<InMusicScore>.convert2MidiMessages(
             is InMusicScoreMidiMetaEvent -> {
                 msgs += MetaMessage(MetaEvent(it.type, it.args))
             }
+
+            is InMusicScoreEvent -> msgs += HexMessage(it.hex)
         }
     }
 

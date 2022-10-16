@@ -196,6 +196,17 @@ class MiderDSL(
         return note
     }
 
+    fun hex(array: ByteArray) {
+        container += InMusicScoreEvent(array)
+    }
+
+    @JvmName("hexVarg")
+    fun hex(vararg byte: Byte) {
+        hex(byte)
+    }
+
+    fun hex(data: String) = hex(data.parseToMidiHexBytes())
+
     private fun creatNote(name: String): Note = Note(name, pitch, DurationDescribe(default = duration), velocity)
 
     fun printInserted(function: (InMusicScore) -> Unit = ::println) {
