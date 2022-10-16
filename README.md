@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation "com.github.whiterasbk:mider:beta0.9.8"
+    implementation "com.github.whiterasbk:mider:beta0.9.11"
 }
 ```
 然后就可以使用啦
