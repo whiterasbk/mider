@@ -9,15 +9,19 @@ internal class HexUtilsKtTest {
 
     @Test
     fun parseToMidiHex() {
-        val tArr1 = InMusicScoreEvent("onC~,64,3").getHex(960 * 2)
-        val bytes1 = arrayOf(0x83, 0x60, 0x93, 72, 64).asByteArray()
+        val tArr0 = InMusicScoreEvent("onC,0,64,3").getHex(960 * 2)
+        val bytes0 = arrayOf(0, 0x93, 72, 64).asByteArray()
+        assertArrayEquals(bytes0, tArr0)
+
+        val tArr1 = InMusicScoreEvent("onC").getHex(960 * 2)
+        val bytes1 = arrayOf(0, 0x90, 72, 0x64).asByteArray()
         assertArrayEquals(bytes1, tArr1)
 
-        val tArr2 = InMusicScoreEvent("offc~").getHex(960 * 2)
-        val bytes2 = arrayOf(0x83, 0x60, 0x80, 60, 0).asByteArray()
+        val tArr2 = InMusicScoreEvent("off c").getHex(960 * 2)
+        val bytes2 = arrayOf(0x83, 0x60, 0x80, 60, 100).asByteArray()
         assertArrayEquals(bytes2, tArr2)
 
-        val tArr3 = InMusicScoreEvent("00 10 ad dc").getHex(960 * 2)
+        val tArr3 = InMusicScoreEvent("0 10 ad dc").getHex(960 * 2)
         val bytes3 = arrayOf(0, 0x10, 0xad, 0xdc).asByteArray()
         assertArrayEquals(bytes3, tArr3)
 

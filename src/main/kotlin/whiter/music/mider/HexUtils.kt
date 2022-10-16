@@ -3,10 +3,10 @@ package whiter.music.mider
 import kotlin.math.exp
 import kotlin.math.ln
 
-private val noteRegex = Regex("(on|off) ?([b#]?[a-gA-G])(\\d?)(\\s*[, ]\\s*\\d+|[-+.~]+)?(\\s*[, ]\\s*\\d+)?(\\s*[, ]\\s*\\d+)?")
+private val noteRegex = Regex("(on|off) *([b#]?[a-gA-G])(\\d?)(\\s*[, ]\\s*\\d+|[-+.~]+)?(\\s*[, ]\\s*\\d{1,3})?(\\s*[, ]\\s*\\d{1,2})?")
 private val instrumentRegex = Regex("i([a-fA-F]|\\d{1,2})?\\s*=\\s*(\\d{1,3}|[0-9a-zA-Z_ -]+)(\\s*[, ]\\s*\\d{1,3})?")
 private val controllerRegex = Regex("c([a-fA-F]|\\d{1,2})?\\s*=\\s*\\d{1,3}\\s*,\\s*\\d{1,3}(\\s*[, ]\\s*\\d{1,3})?")
-private val hexRegex = Regex("([0-9a-fA-F]{2} )*[0-9a-fA-F]{2}")
+private val hexRegex = Regex("([0-9a-fA-F]{1,2} )*[0-9a-fA-F]{1,2}")
 private val instanceHexRegex = Regex("[0-9a-fA-F]+")
 
 fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocity: Int = 100,  defaultDuration: Int = 4, delimiter: String = " "): ByteArray = when {
@@ -33,7 +33,7 @@ fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocit
             name?.let {
                 if (it.last() in 'a' .. 'g') defaultOctave
                 else if (it.last() in 'A' .. 'G') defaultOctave + 1
-                else throw Exception("")
+                else throw Exception("no such note name: $it")
             }
         } ?: defaultOctave
         val timeDesc = values?.get(4)?.replace(",", "")?.trim()?.let {
@@ -47,7 +47,11 @@ fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocit
 
                 time.toInt()
             } else it.toIntOrNull()
-        } ?: 0
+        } ?: run {
+            if (operation != null) {
+                if (operation == "on") 0 else wholeTick / defaultDuration
+            } else throw Exception("")
+        }
         val velocity = values?.get(5)?.replace(",", "")?.trim()?.toIntOrNull() ?: defaultVelocity
         val channel = values?.get(6)?.replace(",", "")?.trim()?.toIntOrNull() ?: 0
         if (channel !in 0..0xf) throw Exception("channel is expected in the range of 0~16, given: $channel")
