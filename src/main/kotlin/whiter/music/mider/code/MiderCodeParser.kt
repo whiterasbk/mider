@@ -572,6 +572,17 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                     else
                         list.last().duration.denominator = denominator
                 }
+
+                'x' -> {
+                    checkSuffixModifyAvailable()
+                    val multiple = afterMacro.nextOnlyInt(index, 1).toDouble()
+                    skipper = 1 // 跳过之后一位
+
+                    if (list.last() is CanModifyTargetDuration)
+                        list.last().cast<CanModifyTargetDuration>().getTargetDuration().multiple = multiple
+                    else
+                        list.last().duration.multiple = multiple
+                }
             }
 
             if (isStave) {

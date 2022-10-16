@@ -1,23 +1,28 @@
 import whiter.music.mider.MidiInstrument
+import whiter.music.mider.code.produceCore
 import whiter.music.mider.dsl.play
 import javax.sound.midi.Instrument
 
 fun main(args: Array<String>) {
 
+//    val k = produceCore(">g>{onC}{offC}")
+//    k.logs.forEach(::println)
     play {
 //        C;D;E
+//        +"ax3"
+//        produceCore("")
 
-        hex("i1=musicbox")
+//        hex("i1=musicbox")
 //        hex("on c")
 //        hex("on d")
-        hex("on E")
+//        hex("on E")
 //        hex("off c~")
 //        hex("off d~")
-        hex("off E+")
+//        hex("off E+")
 
-        hex("00 c0 21")
-        hex("00 90 45 64")
-        hex("83 60 80 45 64")
+//        hex("00 c0 21")
+//        hex("00 90 45 64")
+//        hex("83 60 80 45 64")
     }
 
 //    play {

@@ -54,6 +54,7 @@ class InMusicScoreEvent : InMusicScore {
 
     fun getHex(wholeTick: Int): ByteArray = if (pure) hex else hexString.trim().parseToMidiHex(wholeTick, octave, velocity)
 
+    override fun toString(): String = getHex(960 * 2).showHex().joinToString(" ")
 
-    override fun clone(): InMusicScore = InMusicScoreEvent(hex.clone(), octave)
+    override fun clone(): InMusicScore = InMusicScoreEvent(hex.clone(), octave, velocity)
 }

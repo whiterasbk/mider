@@ -129,6 +129,9 @@ fun produceCore(msg: String, config: MiderCodeParserConfiguration = MiderCodePar
                 } else execBlock()
 
                 logs.add("track: ${index + 1}")
+                container.mainList.forEach {
+                    logs.add("adding: $it")
+                }
             }
 
         }
