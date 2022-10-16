@@ -52,10 +52,8 @@ class InMusicScoreEvent : InMusicScore {
 
     override val duration = DurationDescribe(default = .0) // unreachable
 
-    fun getHex(wholeTick: Int): ByteArray {
-        println(hexString.parseToMidiHex(wholeTick, octave, velocity).showHex())
-        return if (pure) hex else hexString.trim().parseToMidiHex(wholeTick, octave, velocity)
-    }
+    fun getHex(wholeTick: Int): ByteArray = if (pure) hex else hexString.trim().parseToMidiHex(wholeTick, octave, velocity)
+
 
     override fun clone(): InMusicScore = InMusicScoreEvent(hex.clone(), octave)
 }
