@@ -551,7 +551,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                     "stave", "s" -> isStave = kv[1].toBoolean()
                                     "baseDuration", "duration", "d" -> durationDefault = kv[1].toDouble()
 
-                                    else -> println("unsupported mark setup.")
+                                    else -> println("unsupported mark setup.") // todo replace with logger.warning
                                 }
                             }
                         }
