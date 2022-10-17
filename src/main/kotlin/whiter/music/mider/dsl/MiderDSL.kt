@@ -116,6 +116,7 @@ class MiderDSL(
     var convert2MidiEventConfig = ConvertMidiEventConfiguration()
 
     var pitch = 4
+    var channel: Int? = null
     var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
     var onVelocity = velocity
@@ -132,7 +133,7 @@ class MiderDSL(
             container += InMusicScoreMidiNormalEvent(
                 EventType.program_change,
                 byteArrayOf(value.id.toByte()),
-                dispatcher.getChannel(this)
+                channel ?: dispatcher.getChannel(this)
             )
             field = value
         }
@@ -212,14 +213,17 @@ class MiderDSL(
         container += InMusicScoreEvent(data, pitch)
     }
 
-    private fun creatNote(name: String): Note {
-        val note = Note(name, pitch, DurationDescribe(default = duration), velocity)
+    private fun creatNote(name: String) = Note(name, pitch, DurationDescribe(default = duration), velocity).apply {
         if (onVelocity != velocity)
-            note.noteOnVelocity = onVelocity
+            noteOnVelocity = onVelocity
         if (offVelocity != velocity)
-            note.noteOffVelocity = offVelocity
-        return note
+            noteOffVelocity = offVelocity
+
+        channel?.let {
+            attach = NoteAttach(channel = it)
+        }
     }
+
 
     fun printInserted(function: (InMusicScore) -> Unit = ::println) {
         container.mainList.forEach(function)
@@ -377,7 +381,7 @@ class MiderDSL(
 
     //todo
     operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
-        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, useMacro, config)
+        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, channel, useMacro, config)
     }
 
     @Tested
@@ -643,9 +647,7 @@ class MiderDSL(
 
     @Tested
     operator fun Note.get(lyric: String): Note {
-        val na = NoteAttach()
-        na.lyric = lyric
-        attach = na
+        attach = NoteAttach(lyric = lyric)
         return this
     }
 

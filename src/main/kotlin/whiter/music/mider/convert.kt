@@ -29,23 +29,25 @@ fun List<InMusicScore>.convert2MidiMessages(
     var previousTicks = 0
     var modifyChannel = channel
 
+    fun Note.getRealChannel() = attach?.channel ?: modifyChannel
+
     fun checkList(list: MutableList<Note>) {
         val first = list.removeFirst()
-
-        msgs += noteOnMessage(first.actualCode, previousTicks, first.noteOnVelocity * volume, modifyChannel)
-        msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.noteOffVelocity  * volume, modifyChannel)
+        msgs += noteOnMessage(first.actualCode, previousTicks, first.noteOnVelocity * volume, first.getRealChannel())
+        msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.noteOffVelocity  * volume, first.getRealChannel())
 
         list.forEach { note ->
-            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity * volume, modifyChannel)
-            msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.noteOffVelocity  * volume, modifyChannel)
+            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity * volume, note.getRealChannel())
+            msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.noteOffVelocity  * volume, note.getRealChannel())
         }
     }
 
     forEach {
         when (it) {
             is Note -> {
-                msgs += noteOnMessage(it.actualCode, previousTicks, it.noteOnVelocity * volume, modifyChannel)
-                msgs += noteOffMessage(it.actualCode, it.duration.value * wholeTicks, it.noteOffVelocity  * volume, modifyChannel)
+
+                msgs += noteOnMessage(it.actualCode, previousTicks, it.noteOnVelocity * volume, it.getRealChannel())
+                msgs += noteOffMessage(it.actualCode, it.duration.value * wholeTicks, it.noteOffVelocity  * volume, it.getRealChannel())
                 previousTicks = 0
             }
 
@@ -54,7 +56,7 @@ fun List<InMusicScore>.convert2MidiMessages(
                 when (it.arpeggio) {
                     // 上行琶音
                     ArpeggioType.Ascending -> {
-                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, it.rootNote.getRealChannel())
                         var count = 0
 
                         it.rest.forEach { note ->
@@ -62,23 +64,23 @@ fun List<InMusicScore>.convert2MidiMessages(
                                 note.actualCode,
                                 (++count) * config.arpeggioIntervalDuration * wholeTicks,
                                 note.noteOnVelocity * volume,
-                                 modifyChannel)
+                                 note.getRealChannel())
                         }
 
                         msgs += noteOffMessage(
                             it.rootNote.actualCode,
                             it.rootNote.duration.value * wholeTicks - (count) * config.arpeggioIntervalDuration * wholeTicks,
                             it.rootNote.noteOffVelocity * volume,
-                            modifyChannel)
+                            it.rootNote.getRealChannel())
 
                         it.rest.forEach { note ->
-                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
+                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, note.getRealChannel())
                         }
                     }
 
                     // 下行琶音
                     ArpeggioType.Downward -> {
-                        msgs += noteOnMessage(it.rest.last().actualCode, previousTicks, it.rest.last().noteOnVelocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rest.last().actualCode, previousTicks, it.rest.last().noteOnVelocity  * volume, it.rest.last().getRealChannel())
 
                         var count = 0
                         val tpList = mutableListOf<Note>()
@@ -91,24 +93,24 @@ fun List<InMusicScore>.convert2MidiMessages(
                                 note.actualCode,
                                 (++count) * config.arpeggioIntervalDuration * wholeTicks,
                                 note.noteOnVelocity * volume,
-                                modifyChannel)
+                                note.getRealChannel())
                         }
 
                         msgs += noteOffMessage(
                             it.rest.last().actualCode,
                             it.rest.last().duration.value * wholeTicks - (count) * config.arpeggioIntervalDuration * wholeTicks,
                             it.rest.last().noteOffVelocity * volume,
-                            modifyChannel)
+                            it.rest.last().getRealChannel())
 
                         tpList.forEach { note ->
-                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
+                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, note.getRealChannel())
                         }
                     }
 
                     else -> {
-                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, it.rootNote.getRealChannel())
                         it.rest.forEach { note ->
-                            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity  * volume, modifyChannel)
+                            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity  * volume, note.getRealChannel())
                         }
 
                         if (it.isIndependentDuration) {
@@ -121,14 +123,14 @@ fun List<InMusicScore>.convert2MidiMessages(
                             var previousCount = 0
                             notes.forEach { n ->
                                 val duration = (n.duration.value * wholeTicks - previousCount).toInt()
-                                msgs += noteOffMessage(n.actualCode, duration, n.noteOffVelocity  * volume, modifyChannel)
+                                msgs += noteOffMessage(n.actualCode, duration, n.noteOffVelocity  * volume, n.getRealChannel())
                                 previousCount += duration
                             }
 
                         } else {
-                            msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.noteOffVelocity * volume, modifyChannel)
+                            msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.noteOffVelocity * volume, it.rootNote.getRealChannel())
                             it.rest.forEach { note ->
-                                msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
+                                msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, note.getRealChannel())
                             }
                         }
                     }
@@ -143,8 +145,8 @@ fun List<InMusicScore>.convert2MidiMessages(
             }
 
             is TieNote -> {
-                msgs += noteOnMessage(it.main.actualCode, previousTicks, it.main.noteOnVelocity * volume, modifyChannel)
-                msgs += noteOffMessage(it.main.actualCode, it.duration.value * wholeTicks, it.main.noteOffVelocity  * volume, modifyChannel)
+                msgs += noteOnMessage(it.main.actualCode, previousTicks, it.main.noteOnVelocity * volume, it.main.getRealChannel())
+                msgs += noteOffMessage(it.main.actualCode, it.duration.value * wholeTicks, it.main.noteOffVelocity  * volume, it.main.getRealChannel())
                 previousTicks = 0
             }
 
@@ -155,18 +157,18 @@ fun List<InMusicScore>.convert2MidiMessages(
             is Appoggiatura -> {
 
                 if (it.isFront) {
-                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.second.actualCode, config.appoggiaturaDuration * wholeTicks, it.second.noteOffVelocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, it.second.getRealChannel())
+                    msgs += noteOffMessage(it.second.actualCode, config.appoggiaturaDuration * wholeTicks, it.second.noteOffVelocity * volume, it.second.getRealChannel())
 
-                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.main.actualCode, (it.main.duration.value - config.appoggiaturaDuration) * wholeTicks, it.main.noteOffVelocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, it.main.getRealChannel())
+                    msgs += noteOffMessage(it.main.actualCode, (it.main.duration.value - config.appoggiaturaDuration) * wholeTicks, it.main.noteOffVelocity * volume, it.main.getRealChannel())
 
                 } else {
-                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.second.actualCode, (it.second.duration.value - config.appoggiaturaDuration) * wholeTicks, it.second.noteOffVelocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, it.second.getRealChannel())
+                    msgs += noteOffMessage(it.second.actualCode, (it.second.duration.value - config.appoggiaturaDuration) * wholeTicks, it.second.noteOffVelocity * volume, it.second.getRealChannel())
 
-                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.main.actualCode, config.appoggiaturaDuration * wholeTicks, it.main.noteOffVelocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, it.main.getRealChannel())
+                    msgs += noteOffMessage(it.main.actualCode, config.appoggiaturaDuration * wholeTicks, it.main.noteOffVelocity * volume, it.main.getRealChannel())
                 }
 
                 previousTicks = 0

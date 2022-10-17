@@ -1,6 +1,7 @@
 package whiter.music.mider.descr
 
 import whiter.music.mider.*
+import java.lang.StringBuilder
 
 /**
  * 描述一个音符, 信息更全面
@@ -17,7 +18,7 @@ class Note(
     var velocity: Int = 100,
     var isNature: Boolean = false, // 是否添加了还原符号
     var alter: Int = 0,
-    var attach: NoteAttach? = null
+    private var innerAttach: NoteAttach? = null
 ) : InMusicScore, HasFlatAndSharp, HasOctave, CanModifyTargetVelocity, CanModifyTargetPitch {
 
     constructor(name: String, pitch: Int = 4, duration: DurationDescribe = DurationDescribe(), velocity: Int = 100)
@@ -27,6 +28,18 @@ class Note(
 
     var noteOnVelocity = velocity
     var noteOffVelocity = velocity
+
+    var attach: NoteAttach? get() {
+        return innerAttach
+    } set(value) {
+        value?.let { passing ->
+            innerAttach?.copy(passing) ?: run {
+                innerAttach = NoteAttach().apply { copy(passing) }
+            }
+        } ?: run {
+            innerAttach = null
+        }
+    }
 
     /**
      * 获取实际的 midi code, 建议使用 `actualCode` 而不是 `code`
@@ -149,7 +162,7 @@ class Note(
         (if (noteOnVelocity != velocity && noteOffVelocity != velocity) "" else "$velocity") +
         (if (noteOnVelocity != velocity) "↓$noteOnVelocity" else "") +
         (if (noteOffVelocity != velocity) "↑$noteOffVelocity" else "")
-    }]"
+    }${attach?.let { "" + it } ?: "" }]"
 
     override fun hashCode(): Int {
         var result = actualCode
@@ -166,16 +179,35 @@ class Note(
  * 音符上的附加信息
  *
  */
-open class Attach(var lyric: String? = null)
+open class Attach(var lyric: String? = null) {
+    open fun copy(value: NoteAttach) {
+        value.lyric?.let { this.lyric = it }
+    }
+}
 
-class NoteAttach(lyric: String? = null) : Attach(lyric) {
+class NoteAttach(lyric: String? = null, var channel: Int? = null) : Attach(lyric) {
     override fun equals(other: Any?): Boolean {
         return if (other !is NoteAttach) false else {
-            lyric == other.lyric
+            lyric == other.lyric && channel == other.channel
         }
     }
 
     override fun hashCode(): Int {
         return javaClass.hashCode()
     }
+
+    override fun copy(value: NoteAttach) {
+        super.copy(value)
+        value.channel?.let { this.channel = it }
+    }
+
+    override fun toString(): String = StringBuilder().apply {
+        lyric?.let {
+            append("<lyric: $it>")
+        }
+
+        channel?.let {
+            append("<$it>")
+        }
+    }.toString()
 }

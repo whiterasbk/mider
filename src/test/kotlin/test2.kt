@@ -1,5 +1,6 @@
 import whiter.music.mider.MidiInstrument
 import whiter.music.mider.code.produceCore
+import whiter.music.mider.descr.NoteAttach
 import whiter.music.mider.dsl.play
 import javax.sound.midi.Instrument
 
@@ -9,7 +10,16 @@ fun main(args: Array<String>) {
 //    k.logs.forEach(::println)
     play {
 
-        +"c{onc}{offc++}"
+        program = MidiInstrument.oboe
+
+        +"{mark c=2}{i2=11}c[2]"
+//        println("-------" + c.attach)
+//        c.attach = NoteAttach("qw")
+//        println("-------" + c.attach)
+//        c.attach = NoteAttach(channel = 1)
+//        println("-------" + c.attach)
+
+//        +"c[好似]{onc}{offc++}"
 
         container.mainList.forEach(::println)
 //        C;D;E

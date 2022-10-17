@@ -208,7 +208,7 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
     return result.toString()
 }
 
-fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
 
     var pitch = iPitch
     var velocity = iVelocity
@@ -216,6 +216,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
     var offVelocity = iOffVelocity
     var durationDefault = iDurationDefault
     var isStave = iIsStave
+    var defaultChannel = iDefaultChannel
 
     val list = mutableListOf<InMusicScore>()
     val doAfter = mutableListOf<(Char)->Unit>()
@@ -256,6 +257,11 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             if (offVelocity != velocity)
                                 noteOffVelocity = offVelocity
+
+
+                            defaultChannel?.let {
+                                attach = NoteAttach(channel = it)
+                            }
                         }
                     } else if (char == 'b') {
                         doAfter += {
@@ -272,6 +278,10 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             if (offVelocity != velocity)
                                 noteOffVelocity = offVelocity
+
+                            defaultChannel?.let {
+                                attach = NoteAttach(channel = it)
+                            }
                         }
                     }
                 }
@@ -288,6 +298,10 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             if (offVelocity != velocity)
                                 noteOffVelocity = offVelocity
+
+                            defaultChannel?.let {
+                                attach = NoteAttach(channel = it)
+                            }
                         }
                         note.up(deriveInterval(char.code - 49))
                         list += note
@@ -549,6 +563,9 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                         offVelocity = velocity
                                     }
                                     "stave", "s" -> isStave = kv[1].toBoolean()
+                                    "channel", "c" -> defaultChannel = kv[1].let {
+                                        if (it == "default") null else it.toInt()
+                                    }
                                     "baseDuration", "duration", "d" -> durationDefault = kv[1].toDouble()
 
                                     else -> println("unsupported mark setup.") // todo replace with logger.warning
@@ -707,8 +724,6 @@ class MacroConfiguration {
             URL(it).openStream().reader().readText()
         }
     }
-
-
 }
 
 class MacroConfigurationBuilder(private val config: MacroConfiguration = MacroConfiguration()) {
