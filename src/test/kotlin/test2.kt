@@ -10,9 +10,9 @@ fun main(args: Array<String>) {
 //    k.logs.forEach(::println)
     play {
 
-        program = MidiInstrument.oboe
+//        program = MidiInstrument.oboe
 
-        +"{mark c=2}{i2=11}c[2]"
+        +"{ia=11}c[2]"
 //        println("-------" + c.attach)
 //        c.attach = NoteAttach("qw")
 //        println("-------" + c.attach)

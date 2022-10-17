@@ -221,6 +221,8 @@ class MiderDSL(
 
         channel?.let {
             attach = NoteAttach(channel = it)
+        } ?: run {
+            attach?.let { it.channel = null }
         }
     }
 

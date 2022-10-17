@@ -261,6 +261,8 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             defaultChannel?.let {
                                 attach = NoteAttach(channel = it)
+                            } ?: run {
+                                attach?.let { it.channel = null }
                             }
                         }
                     } else if (char == 'b') {
@@ -281,6 +283,8 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             defaultChannel?.let {
                                 attach = NoteAttach(channel = it)
+                            } ?: run {
+                                attach?.let { it.channel = null }
                             }
                         }
                     }
@@ -301,6 +305,8 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                             defaultChannel?.let {
                                 attach = NoteAttach(channel = it)
+                            } ?: run {
+                                attach?.let { it.channel = null }
                             }
                         }
                         note.up(deriveInterval(char.code - 49))
