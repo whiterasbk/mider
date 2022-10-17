@@ -208,7 +208,14 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
     return result.toString()
 }
 
-fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, durationDefault: Double = .25, isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+
+    var pitch = iPitch
+    var velocity = iVelocity
+    var onVelocity = iOnVelocity
+    var offVelocity = iOffVelocity
+    var durationDefault = iDurationDefault
+    var isStave = iIsStave
 
     val list = mutableListOf<InMusicScore>()
     val doAfter = mutableListOf<(Char)->Unit>()
@@ -243,7 +250,13 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
             when (char) {
                 in 'a'..'g' -> {
                     if (isStave) {
-                        list += Note(char, pitch, DurationDescribe(default = durationDefault), velocity)
+                        list += Note(char, pitch, DurationDescribe(default = durationDefault), velocity).apply {
+                            if (onVelocity != velocity)
+                                noteOnVelocity = onVelocity
+
+                            if (offVelocity != velocity)
+                                noteOffVelocity = offVelocity
+                        }
                     } else if (char == 'b') {
                         doAfter += {
                             (list.last() as? Note)?.flap()
@@ -253,7 +266,13 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
 
                 in 'A'..'G' -> {
                     if (isStave) {
-                        list += Note(char, pitch + 1, DurationDescribe(default = durationDefault), velocity)
+                        list += Note(char, pitch + 1, DurationDescribe(default = durationDefault), velocity).apply {
+                            if (onVelocity != velocity)
+                                noteOnVelocity = onVelocity
+
+                            if (offVelocity != velocity)
+                                noteOffVelocity = offVelocity
+                        }
                     }
                 }
 
@@ -263,7 +282,13 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                         if (list.last() is CanModifyTargetPitch)
                             list.last().cast<CanModifyTargetPitch>().modifyTargetPitch(char.code - 48)
                     } else if (char in '1'..'7') {
-                        val note = Note('C', pitch, DurationDescribe(default = durationDefault), velocity)
+                        val note = Note('C', pitch, DurationDescribe(default = durationDefault), velocity).apply {
+                            if (onVelocity != velocity)
+                                noteOnVelocity = onVelocity
+
+                            if (offVelocity != velocity)
+                                noteOffVelocity = offVelocity
+                        }
                         note.up(deriveInterval(char.code - 49))
                         list += note
                     } else if (char == '0') {
@@ -464,15 +489,33 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
 
                 '%' -> {
                     checkSuffixModifyAvailable()
-                    val velocity = afterMacro.nextOnlyInt(index, 3)
-                    skipper = when (velocity) {
+
+                    val onOrOffOrNone = if (index + 1 in afterMacro.indices) {
+                        afterMacro[index + 1]
+                    } else throw Exception("% must be followed by [↑↓]?\\d{1,3}, not end of string")
+
+                    val indexOffset = when (onOrOffOrNone) {
+                        '↑', '↓' -> 1
+                        in '0'..'9' -> 0
+                        else -> throw Exception("% must be followed by [↑↓]?\\d{1,3}")
+                    }
+
+                    val givenVelocity = afterMacro.nextOnlyInt(index + indexOffset, 3)
+                    skipper = when (givenVelocity) {
                         in 0..9 -> 1
                         in 10..99 -> 2
                         in 100..127 -> 3
-                        else -> throw Exception("given: $velocity, but velocity should in 0 ~ 127")
-                    }
+                        else -> throw Exception("given: $givenVelocity, but velocity should in 0 ~ 127")
+                    } + indexOffset
 
-                    if (list.last() is CanModifyTargetVelocity) list.last().cast<CanModifyTargetVelocity>().modifyTargetVelocity(velocity)
+                    if (list.last() is CanModifyTargetVelocity)
+                        when (onOrOffOrNone) {
+                            '↑' -> list.last().cast<CanModifyTargetVelocity>().modifyTargetOffVelocity(givenVelocity)
+
+                            '↓' -> list.last().cast<CanModifyTargetVelocity>().modifyTargetOnVelocity(givenVelocity)
+
+                            else -> list.last().cast<CanModifyTargetVelocity>().modifyTargetVelocity(givenVelocity)
+                        }
                 }
 
                 '[' -> {
@@ -488,9 +531,33 @@ fun toInMusicScoreList(seq: String, pitch: Int = 4, velocity: Int = 100, duratio
                 }
 
                 '{' -> {
-                    val hexData = afterMacro.nextGivenChar(index, '}', 1024)
-                    skipper = hexData.count()
-                    list += InMusicScoreEvent(hexData)
+                    val inBraces = afterMacro.nextGivenChar(index, '}', 1024)
+                    skipper = inBraces.count()
+                    when {
+                        inBraces.startsWith("mark ") -> {
+                            val content = inBraces.removePrefix("mark ")
+                            content.split(",").forEach { item ->
+                                val kv = item.split("=").map { it.trim() }
+                                if (kv.size != 2) throw Exception("mark setup items group are expected like key=value concatenated with commas")
+                                when (kv[0]) {
+                                    "octave", "o" -> pitch = kv[1].toInt()
+                                    "onVel", "onVelocity", "on" -> onVelocity = kv[1].toInt()
+                                    "offVel", "offVelocity", "off" -> offVelocity = kv[1].toInt()
+                                    "velocity", "vel", "v" -> {
+                                        velocity = kv[1].toInt()
+                                        onVelocity = velocity
+                                        offVelocity = velocity
+                                    }
+                                    "stave", "s" -> isStave = kv[1].toBoolean()
+                                    "baseDuration", "duration", "d" -> durationDefault = kv[1].toDouble()
+
+                                    else -> println("unsupported mark setup.")
+                                }
+                            }
+                        }
+
+                        else -> list += InMusicScoreEvent(inBraces) // assume that inBrace is hex data
+                    }
                 }
 
                 ';' -> {

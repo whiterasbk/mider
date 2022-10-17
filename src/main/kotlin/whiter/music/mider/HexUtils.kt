@@ -50,7 +50,7 @@ fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocit
         } ?: run {
             if (operation != null) {
                 if (operation == "on") 0 else wholeTick / defaultDuration
-            } else throw Exception("")
+            } else throw Exception("operation name is expected.")
         }
         val velocity = values?.get(5)?.replace(",", "")?.trim()?.toIntOrNull() ?: defaultVelocity
         val channel = values?.get(6)?.replace(",", "")?.trim()?.toIntOrNull() ?: 0

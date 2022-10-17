@@ -35,6 +35,14 @@ class Glissando(private vararg val args: Note) : InMusicScore, HasFlatAndSharp, 
         notes.last().cast<Note>().velocity = value
     }
 
+    override fun modifyTargetOnVelocity(value: Int) {
+        notes.last().cast<Note>().noteOnVelocity = value
+    }
+
+    override fun modifyTargetOffVelocity(value: Int) {
+        notes.last().cast<Note>().noteOffVelocity = value
+    }
+
     override fun clone(): Glissando {
         val cloneNotes = mutableListOf<Note>()
         notes.forEach {

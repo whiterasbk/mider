@@ -32,20 +32,20 @@ fun List<InMusicScore>.convert2MidiMessages(
     fun checkList(list: MutableList<Note>) {
         val first = list.removeFirst()
 
-        msgs += noteOnMessage(first.actualCode, previousTicks, first.velocity * volume, modifyChannel)
-        msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.velocity  * volume, modifyChannel)
+        msgs += noteOnMessage(first.actualCode, previousTicks, first.noteOnVelocity * volume, modifyChannel)
+        msgs += noteOffMessage(first.actualCode, first.duration.value * wholeTicks, first.noteOffVelocity  * volume, modifyChannel)
 
         list.forEach { note ->
-            msgs += noteOnMessage(note.actualCode, 0, note.velocity * volume, modifyChannel)
-            msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.velocity  * volume, modifyChannel)
+            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity * volume, modifyChannel)
+            msgs += noteOffMessage(note.actualCode, note.duration.value * wholeTicks, note.noteOffVelocity  * volume, modifyChannel)
         }
     }
 
     forEach {
         when (it) {
             is Note -> {
-                msgs += noteOnMessage(it.actualCode, previousTicks, it.velocity * volume, modifyChannel)
-                msgs += noteOffMessage(it.actualCode, it.duration.value * wholeTicks, it.velocity  * volume, modifyChannel)
+                msgs += noteOnMessage(it.actualCode, previousTicks, it.noteOnVelocity * volume, modifyChannel)
+                msgs += noteOffMessage(it.actualCode, it.duration.value * wholeTicks, it.noteOffVelocity  * volume, modifyChannel)
                 previousTicks = 0
             }
 
@@ -54,31 +54,31 @@ fun List<InMusicScore>.convert2MidiMessages(
                 when (it.arpeggio) {
                     // 上行琶音
                     ArpeggioType.Ascending -> {
-                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.velocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, modifyChannel)
                         var count = 0
 
                         it.rest.forEach { note ->
                             msgs += noteOnMessage(
                                 note.actualCode,
                                 (++count) * config.arpeggioIntervalDuration * wholeTicks,
-                                note.velocity * volume,
+                                note.noteOnVelocity * volume,
                                  modifyChannel)
                         }
 
                         msgs += noteOffMessage(
                             it.rootNote.actualCode,
                             it.rootNote.duration.value * wholeTicks - (count) * config.arpeggioIntervalDuration * wholeTicks,
-                            it.rootNote.velocity * volume,
+                            it.rootNote.noteOffVelocity * volume,
                             modifyChannel)
 
                         it.rest.forEach { note ->
-                            msgs += noteOffMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
                         }
                     }
 
                     // 下行琶音
                     ArpeggioType.Downward -> {
-                        msgs += noteOnMessage(it.rest.last().actualCode, previousTicks, it.rest.last().velocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rest.last().actualCode, previousTicks, it.rest.last().noteOnVelocity  * volume, modifyChannel)
 
                         var count = 0
                         val tpList = mutableListOf<Note>()
@@ -90,25 +90,25 @@ fun List<InMusicScore>.convert2MidiMessages(
                             msgs += noteOnMessage(
                                 note.actualCode,
                                 (++count) * config.arpeggioIntervalDuration * wholeTicks,
-                                note.velocity * volume,
+                                note.noteOnVelocity * volume,
                                 modifyChannel)
                         }
 
                         msgs += noteOffMessage(
                             it.rest.last().actualCode,
                             it.rest.last().duration.value * wholeTicks - (count) * config.arpeggioIntervalDuration * wholeTicks,
-                            it.rest.last().velocity * volume,
+                            it.rest.last().noteOffVelocity * volume,
                             modifyChannel)
 
                         tpList.forEach { note ->
-                            msgs += noteOffMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                            msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
                         }
                     }
 
                     else -> {
-                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.velocity  * volume, modifyChannel)
+                        msgs += noteOnMessage(it.rootNote.actualCode, previousTicks, it.rootNote.noteOnVelocity  * volume, modifyChannel)
                         it.rest.forEach { note ->
-                            msgs += noteOnMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                            msgs += noteOnMessage(note.actualCode, 0, note.noteOnVelocity  * volume, modifyChannel)
                         }
 
                         if (it.isIndependentDuration) {
@@ -121,14 +121,14 @@ fun List<InMusicScore>.convert2MidiMessages(
                             var previousCount = 0
                             notes.forEach { n ->
                                 val duration = (n.duration.value * wholeTicks - previousCount).toInt()
-                                msgs += noteOffMessage(n.actualCode, duration, n.velocity  * volume, modifyChannel)
+                                msgs += noteOffMessage(n.actualCode, duration, n.noteOffVelocity  * volume, modifyChannel)
                                 previousCount += duration
                             }
 
                         } else {
-                            msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.velocity * volume, modifyChannel)
+                            msgs += noteOffMessage(it.rootNote.actualCode, it.rootNote.duration.value * wholeTicks, it.rootNote.noteOffVelocity * volume, modifyChannel)
                             it.rest.forEach { note ->
-                                msgs += noteOffMessage(note.actualCode, 0, note.velocity  * volume, modifyChannel)
+                                msgs += noteOffMessage(note.actualCode, 0, note.noteOffVelocity  * volume, modifyChannel)
                             }
                         }
                     }
@@ -143,8 +143,8 @@ fun List<InMusicScore>.convert2MidiMessages(
             }
 
             is TieNote -> {
-                msgs += noteOnMessage(it.main.actualCode, previousTicks, it.main.velocity * volume, modifyChannel)
-                msgs += noteOffMessage(it.main.actualCode, it.duration.value * wholeTicks, it.main.velocity  * volume, modifyChannel)
+                msgs += noteOnMessage(it.main.actualCode, previousTicks, it.main.noteOnVelocity * volume, modifyChannel)
+                msgs += noteOffMessage(it.main.actualCode, it.duration.value * wholeTicks, it.main.noteOffVelocity  * volume, modifyChannel)
                 previousTicks = 0
             }
 
@@ -155,18 +155,18 @@ fun List<InMusicScore>.convert2MidiMessages(
             is Appoggiatura -> {
 
                 if (it.isFront) {
-                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.velocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.second.actualCode, config.appoggiaturaDuration * wholeTicks, it.second.velocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, modifyChannel)
+                    msgs += noteOffMessage(it.second.actualCode, config.appoggiaturaDuration * wholeTicks, it.second.noteOffVelocity * volume, modifyChannel)
 
-                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.velocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.main.actualCode, (it.main.duration.value - config.appoggiaturaDuration) * wholeTicks, it.main.velocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, modifyChannel)
+                    msgs += noteOffMessage(it.main.actualCode, (it.main.duration.value - config.appoggiaturaDuration) * wholeTicks, it.main.noteOffVelocity * volume, modifyChannel)
 
                 } else {
-                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.velocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.second.actualCode, (it.second.duration.value - config.appoggiaturaDuration) * wholeTicks, it.second.velocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.second.actualCode, previousTicks, it.second.noteOnVelocity * volume, modifyChannel)
+                    msgs += noteOffMessage(it.second.actualCode, (it.second.duration.value - config.appoggiaturaDuration) * wholeTicks, it.second.noteOffVelocity * volume, modifyChannel)
 
-                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.velocity * volume, modifyChannel)
-                    msgs += noteOffMessage(it.main.actualCode, config.appoggiaturaDuration * wholeTicks, it.main.velocity * volume, modifyChannel)
+                    msgs += noteOnMessage(it.main.actualCode, 0, it.main.noteOnVelocity * volume, modifyChannel)
+                    msgs += noteOffMessage(it.main.actualCode, config.appoggiaturaDuration * wholeTicks, it.main.noteOffVelocity * volume, modifyChannel)
                 }
 
                 previousTicks = 0

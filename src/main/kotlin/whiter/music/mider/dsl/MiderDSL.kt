@@ -118,6 +118,9 @@ class MiderDSL(
     var pitch = 4
     var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
+    var onVelocity = velocity
+    var offVelocity = velocity
+
     var program: MidiInstrument = MidiInstrument.piano
         set(value) {
 
@@ -209,7 +212,14 @@ class MiderDSL(
         container += InMusicScoreEvent(data, pitch)
     }
 
-    private fun creatNote(name: String): Note = Note(name, pitch, DurationDescribe(default = duration), velocity)
+    private fun creatNote(name: String): Note {
+        val note = Note(name, pitch, DurationDescribe(default = duration), velocity)
+        if (onVelocity != velocity)
+            note.noteOnVelocity = onVelocity
+        if (offVelocity != velocity)
+            note.noteOffVelocity = offVelocity
+        return note
+    }
 
     fun printInserted(function: (InMusicScore) -> Unit = ::println) {
         container.mainList.forEach(function)
@@ -250,6 +260,30 @@ class MiderDSL(
         velocity = value
         block()
         velocity = cacheVelocity
+    }
+
+    fun velocity(on: Int, off: Int, block: MiderDSL.() -> Unit) {
+        val cacheOnVelocity = onVelocity
+        val cacheOffVelocity = offVelocity
+        onVelocity = on
+        offVelocity = off
+        block()
+        onVelocity = cacheOnVelocity
+        offVelocity = cacheOffVelocity
+    }
+
+    fun onVelocity(value: Int, block: MiderDSL.() -> Unit) {
+        val cacheVelocity = onVelocity
+        onVelocity = value
+        block()
+        onVelocity = cacheVelocity
+    }
+
+    fun offVelocity(value: Int, block: MiderDSL.() -> Unit) {
+        val cacheVelocity = offVelocity
+        offVelocity = value
+        block()
+        offVelocity = cacheVelocity
     }
 
     @Tested
@@ -343,7 +377,7 @@ class MiderDSL(
 
     //todo
     operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
-        container += toInMusicScoreList(this, pitch, velocity, duration, isStave, useMacro, config)
+        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, useMacro, config)
     }
 
     @Tested

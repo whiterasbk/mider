@@ -25,6 +25,9 @@ class Note(
     constructor(name: Char, pitch: Int = 4, duration: DurationDescribe = DurationDescribe(), velocity: Int = 100)
             : this(name.uppercase(), pitch, duration, velocity)
 
+    var noteOnVelocity = velocity
+    var noteOffVelocity = velocity
+
     /**
      * 获取实际的 midi code, 建议使用 `actualCode` 而不是 `code`
      */
@@ -51,6 +54,14 @@ class Note(
 
     override fun modifyTargetVelocity(value: Int) {
         velocity = value
+    }
+
+    override fun modifyTargetOnVelocity(value: Int) {
+        noteOnVelocity = value
+    }
+
+    override fun modifyTargetOffVelocity(value: Int) {
+        noteOffVelocity = value
     }
 
     operator fun plusAssign(addPitch: Int) {
@@ -106,7 +117,10 @@ class Note(
     }
 
     override fun clone(): Note {
-        return Note(code, duration.clone(), velocity, isNature, alter, attach)
+        val note = Note(code, duration.clone(), velocity, isNature, alter, attach)
+        note.noteOnVelocity = noteOnVelocity
+        note.noteOffVelocity = noteOffVelocity
+        return note
     }
 
     override fun higherOctave(pitch: Int) {
@@ -131,7 +145,11 @@ class Note(
         }
     }
 
-    override fun toString(): String = "[$actualCode=${noteNameFromCode(actualCode)}$actualPitch|$duration|$velocity]"
+    override fun toString(): String = "[$actualCode=${noteNameFromCode(actualCode)}$actualPitch|$duration|${
+        (if (noteOnVelocity != velocity && noteOffVelocity != velocity) "" else "$velocity") +
+        (if (noteOnVelocity != velocity) "↓$noteOnVelocity" else "") +
+        (if (noteOffVelocity != velocity) "↑$noteOffVelocity" else "")
+    }]"
 
     override fun hashCode(): Int {
         var result = actualCode

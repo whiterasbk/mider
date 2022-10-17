@@ -31,6 +31,14 @@ class Chord(vararg firstNotes: Note) : InMusicScore, HasFlatAndSharp, HasOctave,
         last().velocity = value
     }
 
+    override fun modifyTargetOffVelocity(value: Int) {
+        last().noteOffVelocity = value
+    }
+
+    override fun modifyTargetOnVelocity(value: Int) {
+        last().noteOnVelocity = value
+    }
+
     override fun clone(): Chord {
         val cloneNotes = mutableListOf<Note>()
         notes.forEach {

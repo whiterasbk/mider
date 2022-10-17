@@ -8,6 +8,10 @@ fun main(args: Array<String>) {
 //    val k = produceCore(">g>{onC}{offC}")
 //    k.logs.forEach(::println)
     play {
+
+        +"c{onc}{offc++}"
+
+        container.mainList.forEach(::println)
 //        C;D;E
 //        +"ax3"
 //        produceCore("")

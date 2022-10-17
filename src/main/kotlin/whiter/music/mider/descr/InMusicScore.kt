@@ -29,6 +29,14 @@ interface HasOctave {
 
 interface CanModifyTargetVelocity {
     fun modifyTargetVelocity(value: Int)
+
+    fun modifyTargetOnVelocity(value: Int) {
+        modifyTargetVelocity(value)
+    }
+
+    fun modifyTargetOffVelocity(value: Int) {
+        modifyTargetVelocity(value)
+    }
 }
 
 interface CanModifyTargetDuration {

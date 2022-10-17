@@ -197,7 +197,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
 
         assertEquals(expected, list.joinToString("\n"))
 
-        val numList = toInMusicScoreList("1234567 1i2i3i4i5i6↑7↑", isStave = false, useMacro = false)
+        val numList = toInMusicScoreList("1234567 1i2i3i4i5i6↑7↑", iIsStave = false, useMacro = false)
         assertEquals(list, numList)
     }
 
@@ -215,7 +215,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
 
         assertEquals(3.0, list[3].duration.denominator)
 
-        val numList = toInMusicScoreList("1+2-3. 1/3", useMacro = false, isStave = false)
+        val numList = toInMusicScoreList("1+2-3. 1/3", useMacro = false, iIsStave = false)
         assertEquals(list, numList)
     }
 
@@ -236,7 +236,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
         assertEquals(expected, list.jts())
         assert(list[3].cast<Note>().isNature)
 
-        val numList = toInMusicScoreList("#1$2b3@45♯67'", isStave = false, useMacro = false)
+        val numList = toInMusicScoreList("#1$2b3@45♯67'", iIsStave = false, useMacro = false)
 
         assertEquals(list, numList)
     }
@@ -282,7 +282,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
         assert(list[2].cast<Appoggiatura>().isFront)
         assert(!list[3].cast<Appoggiatura>().isFront)
 
-        val numList = toInMusicScoreList("6;2++ 6++;2 6%50;2%20 6;2t++", useMacro = false, isStave = false)
+        val numList = toInMusicScoreList("6;2++ 6++;2 6%50;2%20 6;2t++", useMacro = false, iIsStave = false)
         assertEquals(list, numList)
     }
 
@@ -381,7 +381,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
                     "6:2↑:1↑ " +
                     "6:2:1↟ " +
                     "6:2:1↡ ",
-            useMacro = false, isStave = false)
+            useMacro = false, iIsStave = false)
 
         assertEquals(list, numList)
     }
@@ -406,7 +406,7 @@ class TestMiderCodeParser : ABTestInMusicScore() {
         assert(!list[3].cast<Glissando>().isWave)
         assert(!list[4].cast<Glissando>().isWave)
 
-        val numList = toInMusicScoreList("1=2 1≈2i 1--=2++=3. #1=b2=3' 1%50=2%50=3%20", useMacro = false, isStave = false)
+        val numList = toInMusicScoreList("1=2 1≈2i 1--=2++=3. #1=b2=3' 1%50=2%50=3%20", useMacro = false, iIsStave = false)
 
         assertEquals(list, numList)
     }

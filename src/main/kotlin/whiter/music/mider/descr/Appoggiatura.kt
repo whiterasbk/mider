@@ -19,6 +19,14 @@ class Appoggiatura(val second: Note, val main: Note, var isFront: Boolean = true
         main.velocity = value
     }
 
+    override fun modifyTargetOnVelocity(value: Int) {
+        main.noteOnVelocity = value
+    }
+
+    override fun modifyTargetOffVelocity(value: Int) {
+        main.noteOffVelocity = value
+    }
+
     override fun modifyTargetPitch(given: Int) {
         main.pitch = given
     }
