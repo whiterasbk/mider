@@ -11,7 +11,8 @@ fun main(args: Array<String>) {
     play {
 
 //        program = MidiInstrument.oboe
-
+        midiTitle("123")
+        midiLyric("你是")
         +"{ia=11}c[2]"
 //        println("-------" + c.attach)
 //        c.attach = NoteAttach("qw")

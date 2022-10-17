@@ -8,6 +8,9 @@ private val instrumentRegex = Regex("i([a-fA-F]|\\d{1,2})?\\s*=\\s*(\\d{1,3}|[0-
 private val controllerRegex = Regex("c([a-fA-F]|\\d{1,2})?\\s*=\\s*\\d{1,3}\\s*,\\s*\\d{1,3}(\\s*[, ]\\s*\\d{1,3})?")
 private val hexRegex = Regex("([0-9a-fA-F]{1,2} )*[0-9a-fA-F]{1,2}")
 private val instanceHexRegex = Regex("[0-9a-fA-F]+")
+private val titleRegex = Regex("title .+")
+private val programNameRegex = Regex("instrumentName .+")
+private val lyricRegex = Regex("lyric .+")
 
 fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocity: Int = 100,  defaultDuration: Int = 4, delimiter: String = " "): ByteArray = when {
 
@@ -98,6 +101,20 @@ fun String.parseToMidiHex(wholeTick: Int, defaultOctave: Int = 4, defaultVelocit
         )
     }
 
+    this matches titleRegex -> asMetaEventData("title ", 3)
+
+    this matches programNameRegex -> asMetaEventData("instrumentName ", 4)
+
+    this matches lyricRegex -> asMetaEventData("lyric ", 5)
+
     else -> throw Exception("this operation has not yet implement: $this")
+}
+
+private fun String.asMetaEventData(prefix: String, type: Int) = removePrefix(prefix).toByteArray().let {
+    byteArrayOf(
+        0, 0xff.toByte(), type.toByte(),
+        *it.size.asvlByteArray(),
+        *it
+    )
 }
 

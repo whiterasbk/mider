@@ -209,6 +209,12 @@ class MiderDSL(
         hex(byte)
     }
 
+    fun midiTitle(title: String) = hex("title $title")
+
+    fun midiLyric(lyric: String) = hex("lyric $lyric")
+
+    fun midiInstrumentName(name: String) = hex("instrumentName $name")
+
     fun hex(data: String) {
         container += InMusicScoreEvent(data, pitch)
     }
