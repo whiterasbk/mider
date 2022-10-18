@@ -3,6 +3,8 @@ package whiter.music.mider
 import whiter.music.mider.descr.*
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.math.exp
+import kotlin.math.ln
 
 fun bpm2tempo(bpm: Int) = (60 * 1000000) / bpm
 
@@ -479,3 +481,30 @@ fun List<Note>.glissandoPoints(): List<Pair<Note, Note>> {
     return list
 }
 
+fun String.subStringCount(toBeFound: String): Int {
+    var count = 0
+    var index = 0
+    while (indexOf(toBeFound, index).also { index = it } != -1) {
+        index += toBeFound.length
+        count ++
+    }
+    return count
+}
+
+fun String.durationSymbolsToMultiple(): Float {
+    fun String.div(int: Int) = subStringCount("/$int")
+    fun String.mul(int: Int) = subStringCount("x$int")
+
+    trim().let {
+        val plus = it.charCount('+')
+        val minus = it.charCount('-')
+        val dot = it.charCount('.')
+        var value = (plus - minus) * ln(2f) + dot * ln(1.5f)
+
+        for (i in 3..9) {
+            value += (it.mul(i) - it.div(i)) * ln(i.toFloat())
+        }
+
+        return exp(value)
+    }
+}

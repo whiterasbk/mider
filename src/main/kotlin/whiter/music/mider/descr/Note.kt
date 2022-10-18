@@ -130,7 +130,7 @@ class Note(
     }
 
     override fun clone(): Note {
-        val note = Note(code, duration.clone(), velocity, isNature, alter, attach)
+        val note = Note(code, duration.clone(), velocity, isNature, alter, attach?.clone())
         note.noteOnVelocity = noteOnVelocity
         note.noteOffVelocity = noteOffVelocity
         return note
@@ -179,13 +179,21 @@ class Note(
  * 音符上的附加信息
  *
  */
-open class Attach(var lyric: String? = null) {
+open class Attach(var lyric: String? = null) : Cloneable {
     open fun copy(value: NoteAttach) {
         value.lyric?.let { this.lyric = it }
     }
+
+    override fun clone(): Attach {
+        return Attach(lyric)
+    }
 }
 
-class NoteAttach(lyric: String? = null, var channel: Int? = null) : Attach(lyric) {
+class NoteAttach(
+    lyric: String? = null,
+    var channel: Int? = null,
+    var gap: RelativeTicks? = null
+) : Attach(lyric) {
     override fun equals(other: Any?): Boolean {
         return if (other !is NoteAttach) false else {
             lyric == other.lyric && channel == other.channel
@@ -199,6 +207,21 @@ class NoteAttach(lyric: String? = null, var channel: Int? = null) : Attach(lyric
     override fun copy(value: NoteAttach) {
         super.copy(value)
         value.channel?.let { this.channel = it }
+        value.gap?.let { this.gap = it }
+    }
+
+    fun clearChannel() {
+        channel = null
+    }
+    fun clearGap() {
+        gap = null
+    }
+    fun clearLyric() {
+        lyric = null
+    }
+
+    public override fun clone(): NoteAttach {
+        return NoteAttach(lyric, channel, gap)
     }
 
     override fun toString(): String = StringBuilder().apply {
@@ -207,6 +230,9 @@ class NoteAttach(lyric: String? = null, var channel: Int? = null) : Attach(lyric
         }
 
         channel?.let {
+            append("<$it>")
+        }
+        gap?.let {
             append("<$it>")
         }
     }.toString()

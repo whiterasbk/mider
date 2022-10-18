@@ -208,7 +208,7 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
     return result.toString()
 }
 
-fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, iDefaultGap: RelativeTicks? = null, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
 
     var pitch = iPitch
     var velocity = iVelocity
@@ -217,6 +217,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
     var durationDefault = iDurationDefault
     var isStave = iIsStave
     var defaultChannel = iDefaultChannel
+    var defaultGap = iDefaultGap
 
     val list = mutableListOf<InMusicScore>()
     val doAfter = mutableListOf<(Char)->Unit>()
@@ -259,11 +260,10 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                 noteOffVelocity = offVelocity
 
 
-                            defaultChannel?.let {
-                                attach = NoteAttach(channel = it)
-                            } ?: run {
-                                attach?.let { it.channel = null }
-                            }
+                            defaultChannel?.let { attach = NoteAttach(channel = it) } ?: attach?.clearChannel()
+//                                attach?.let { it.channel = null }
+
+                            defaultGap?.let { attach = NoteAttach(gap = it) } ?: attach?.clearGap()
                         }
                     } else if (char == 'b') {
                         doAfter += {
@@ -281,11 +281,10 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                             if (offVelocity != velocity)
                                 noteOffVelocity = offVelocity
 
-                            defaultChannel?.let {
-                                attach = NoteAttach(channel = it)
-                            } ?: run {
-                                attach?.let { it.channel = null }
-                            }
+                            defaultChannel?.let { attach = NoteAttach(channel = it) } ?: attach?.clearChannel()
+//                                attach?.let { it.channel = null }
+
+                            defaultGap?.let { attach = NoteAttach(gap = it) } ?: attach?.clearGap()
                         }
                     }
                 }
@@ -303,11 +302,10 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                             if (offVelocity != velocity)
                                 noteOffVelocity = offVelocity
 
-                            defaultChannel?.let {
-                                attach = NoteAttach(channel = it)
-                            } ?: run {
-                                attach?.let { it.channel = null }
-                            }
+                            defaultChannel?.let { attach = NoteAttach(channel = it) } ?: attach?.clearChannel()
+//                                attach?.let { it.channel = null }
+
+                            defaultGap?.let { attach = NoteAttach(gap = it) } ?: attach?.clearGap()
                         }
                         note.up(deriveInterval(char.code - 49))
                         list += note
@@ -570,9 +568,16 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                     }
                                     "stave", "s" -> isStave = kv[1].toBoolean()
                                     "channel", "c" -> defaultChannel = kv[1].let {
-                                        if (it == "default") null else it.toInt()
+                                        if (it == "default" || it == "null") null else it.toInt()
                                     }
                                     "baseDuration", "duration", "d" -> durationDefault = kv[1].toDouble()
+                                    "gap" -> kv[1].let { v ->
+                                        v.toLongOrNull()?.let { defaultGap = RelativeTicks(it) } ?: run {
+                                            defaultGap = if (v == "default" || v == "null") null
+                                            else RelativeTicks(v.durationSymbolsToMultiple().toDouble())
+                                        }
+                                    }
+
 
                                     else -> println("unsupported mark setup.") // todo replace with logger.warning
                                 }

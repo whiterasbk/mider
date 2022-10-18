@@ -5,6 +5,8 @@ import whiter.music.mider.annotation.Tested
 import whiter.music.mider.code.MacroConfiguration
 import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
+import kotlin.math.exp
+import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.reflect.KProperty
 
@@ -117,6 +119,8 @@ class MiderDSL(
 
     var pitch = 4
     var channel: Int? = null
+    // note on event 之前的 ticks
+    var gap: RelativeTicks? = null
     var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
     var onVelocity = velocity
@@ -209,6 +213,28 @@ class MiderDSL(
         hex(byte)
     }
 
+    fun gap(ticks: Number, block: MiderDSL.() -> Unit) {
+        val cachedGap = gap
+        gap = RelativeTicks(ticks.toLong())
+        block()
+        gap = cachedGap
+    }
+    fun gap(ticks: Int) {
+        gap = RelativeTicks(ticks.toLong())
+    }
+
+    fun gap(symbols: String, block: MiderDSL.() -> Unit) {
+        val cachedGap = gap
+        gap(symbols)
+        block()
+        gap = cachedGap
+    }
+
+    fun gap(symbols: String) {
+        if (symbols.isNotBlank())
+            gap = RelativeTicks(symbols.durationSymbolsToMultiple() * duration)
+    }
+
     fun midiTitle(title: String) = hex("title $title")
 
     fun midiLyric(lyric: String) = hex("lyric $lyric")
@@ -228,8 +254,19 @@ class MiderDSL(
         channel?.let {
             attach = NoteAttach(channel = it)
         } ?: run {
-            attach?.let { it.channel = null }
+            attach?.clearChannel()
+//            attach?.let { it.channel = null }
         }
+
+        gap?.let {
+            attach = NoteAttach(gap = gap)
+        } ?: attach?.clearGap()
+
+//        if (gap != 0L) {
+//            attach = NoteAttach(gap = gap)
+//        } else {
+//            attach?.clearChannel()
+//        }
     }
 
 
@@ -389,7 +426,7 @@ class MiderDSL(
 
     //todo
     operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
-        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, channel, useMacro, config)
+        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, channel, gap, useMacro, config)
     }
 
     @Tested

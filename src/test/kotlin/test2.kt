@@ -10,10 +10,12 @@ fun main(args: Array<String>) {
 //    k.logs.forEach(::println)
     play {
 
+        +"{mark gap=24} cccc {mark gap=null} dddd"
+
 //        program = MidiInstrument.oboe
-        midiTitle("123")
-        midiLyric("你是")
-        +"{ia=11}c[2]"
+//        midiTitle("123")
+//        midiLyric("你是")
+//        +"{ia=11}c[2]"
 //        println("-------" + c.attach)
 //        c.attach = NoteAttach("qw")
 //        println("-------" + c.attach)
