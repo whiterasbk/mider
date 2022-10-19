@@ -30,7 +30,11 @@ fun List<InMusicScore>.convert2MidiMessages(
     var modifyChannel = channel
 
     fun Note.getRealChannel() = attach?.channel ?: modifyChannel
-    fun Note.getRealPreviousTicks() = attach?.gap?.let { it.calcTicks(wholeTicks.toLong()) + previousTicks } ?: previousTicks
+    fun Note.getRealPreviousTicks() = previousTicks.let { pt ->
+        if (pt == 0L) {
+            attach?.gap?.calcTicks(wholeTicks.toLong()) ?: 0L
+        } else pt
+    } //attach?.gap?.let { it.calcTicks(wholeTicks.toLong()) + previousTicks } ?: previousTicks
     fun Note.getDurationTicks() = duration.value * wholeTicks
     fun Note.onVelocity() = noteOnVelocity * volume
     fun Note.offVelocity() = noteOffVelocity * volume
