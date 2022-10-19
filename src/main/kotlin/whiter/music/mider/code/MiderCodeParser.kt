@@ -574,7 +574,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                     "gap" -> kv[1].let { v ->
                                         v.toLongOrNull()?.let { defaultGap = RelativeTicks(it) } ?: run {
                                             defaultGap = if (v == "default" || v == "null") null
-                                            else RelativeTicks(v.durationSymbolsToMultiple().toDouble())
+                                            else RelativeTicks(v.durationSymbolsToMultiple())
                                         }
                                     }
 
@@ -584,7 +584,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                             }
                         }
 
-                        else -> list += InMusicScoreEvent(inBraces) // assume that inBrace is hex data
+                        else -> list += InMusicScoreEvent(inBraces, pitch, velocity, miderDefaultDuration = durationDefault) // assume that inBrace is hex data
                     }
                 }
 

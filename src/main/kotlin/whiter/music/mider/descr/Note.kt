@@ -15,7 +15,7 @@ class Note(
      */
     var code: Int,
     override val duration: DurationDescribe = DurationDescribe(),
-    var velocity: Int = 100,
+    velocity: Int = 100,
     var isNature: Boolean = false, // 是否添加了还原符号
     var alter: Int = 0,
     private var innerAttach: NoteAttach? = null
@@ -25,6 +25,13 @@ class Note(
             : this(noteBaseOffset (name) + (pitch + 1) * 12, duration, velocity)
     constructor(name: Char, pitch: Int = 4, duration: DurationDescribe = DurationDescribe(), velocity: Int = 100)
             : this(name.uppercase(), pitch, duration, velocity)
+
+    var velocity: Int = velocity
+        set(value) {
+            noteOnVelocity = value
+            noteOffVelocity = value
+            field = value
+        }
 
     var noteOnVelocity = velocity
     var noteOffVelocity = velocity

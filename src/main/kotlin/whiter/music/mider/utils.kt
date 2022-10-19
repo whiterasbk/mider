@@ -491,7 +491,7 @@ fun String.subStringCount(toBeFound: String): Int {
     return count
 }
 
-fun String.durationSymbolsToMultiple(): Float {
+fun String.durationSymbolsToMultiple(c: Double = .0): Double {
     fun String.div(int: Int) = subStringCount("/$int")
     fun String.mul(int: Int) = subStringCount("x$int")
 
@@ -499,12 +499,12 @@ fun String.durationSymbolsToMultiple(): Float {
         val plus = it.charCount('+')
         val minus = it.charCount('-')
         val dot = it.charCount('.')
-        var value = (plus - minus) * ln(2f) + dot * ln(1.5f)
+        var value = (plus - minus) * ln(2.0) + dot * ln(1.5)
 
         for (i in 3..9) {
-            value += (it.mul(i) - it.div(i)) * ln(i.toFloat())
+            value += (it.mul(i) - it.div(i)) * ln(i.toDouble())
         }
 
-        return exp(value)
+        return exp(value + c)
     }
 }

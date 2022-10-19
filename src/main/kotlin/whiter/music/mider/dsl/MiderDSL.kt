@@ -123,6 +123,11 @@ class MiderDSL(
     var gap: RelativeTicks? = null
     var duration = 1.0 / 4 // 1.0为全音符
     var velocity = 100
+        set(value) {
+            onVelocity = value
+            offVelocity = value
+            field = value
+        }
     var onVelocity = velocity
     var offVelocity = velocity
 
@@ -205,7 +210,7 @@ class MiderDSL(
     }
 
     fun hex(array: ByteArray) {
-        container += InMusicScoreEvent(array, pitch)
+        container += InMusicScoreEvent(array, pitch, velocity, duration)
     }
 
     @JvmName("hexVarg")
@@ -242,7 +247,7 @@ class MiderDSL(
     fun midiInstrumentName(name: String) = hex("instrumentName $name")
 
     fun hex(data: String) {
-        container += InMusicScoreEvent(data, pitch)
+        container += InMusicScoreEvent(data, pitch, velocity, duration)
     }
 
     private fun creatNote(name: String) = Note(name, pitch, DurationDescribe(default = duration), velocity).apply {
@@ -306,9 +311,13 @@ class MiderDSL(
     @Tested
     fun velocity(value: Int, block: MiderDSL.() -> Unit) {
         val cacheVelocity = velocity
+        val cacheOnVelocity = onVelocity
+        val cacheOffVelocity = offVelocity
         velocity = value
         block()
         velocity = cacheVelocity
+        onVelocity = cacheOnVelocity
+        offVelocity = cacheOffVelocity
     }
 
     fun velocity(on: Int, off: Int, block: MiderDSL.() -> Unit) {

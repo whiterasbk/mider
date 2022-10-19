@@ -491,7 +491,7 @@ class TestMiderDsl : ABTestInMusicScore() {
             generate("#F"),
             generate("#F"),
             generate("D"),
-            generate("G"),
+            "[67=G4|0.25|100<lyric: ai2>]",
             generate("C")
         ).jts(), dsl.jts())
 

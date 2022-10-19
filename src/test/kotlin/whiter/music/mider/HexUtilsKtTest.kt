@@ -40,5 +40,10 @@ internal class HexUtilsKtTest {
         val tArr7 = InMusicScoreEvent("c=7,255").getHex(960 * 2)
         val bytes7 = arrayOf(0, 0xb0, 0x7, 0xff).asByteArray()
         assertArrayEquals(bytes7, tArr7)
+
+        val tArr8 = InMusicScoreEvent("off c/5..").getHex(960 * 2)
+        val deltaTime = (960 * 2 / 4 / 5 * 1.5 * 1.5).toInt().asvlByteArray().map { it.toInt() }.toTypedArray()
+        val bytes8 = arrayOf(*deltaTime, 0x80, 60, 0x64).asByteArray()
+        assertArrayEquals(bytes8, tArr8)
     }
 }
