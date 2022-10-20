@@ -208,6 +208,18 @@ fun macro(seq: String, config: MacroConfiguration = MacroConfiguration()): Strin
     return result.toString()
 }
 
+class ActionStack <P, R> : Stack<(P) -> R>() {
+    operator fun plusAssign(block: (P) -> R) {
+        push(block)
+    }
+
+    operator fun invoke(p: P): MutableList<R> {
+        val resultSet = mutableListOf<R>()
+        while (isNotEmpty()) resultSet += pop()(p)
+        return resultSet
+    }
+}
+
 fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, iDefaultGap: RelativeTicks? = null, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
 
     var pitch = iPitch
@@ -220,7 +232,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
     var defaultGap = iDefaultGap
 
     val list = mutableListOf<InMusicScore>()
-    val doAfter = mutableListOf<(Char)->Unit>()
+    val doAfter = ActionStack<Char, Unit>() //mutableListOf<(Char)->Unit>()
     var skipper = 0 // 跳过多少个字符 0 表示不跳过
 
     val afterMacro = if (useMacro) macro(seq, config) else seq
@@ -683,15 +695,17 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
             if (isStave) {
                 when(char) {
                     in "abcdefgABCDEFG~^vmwnui!pqsz" -> {
-                        doAfter.asReversed().forEach { it(char) }
-                        doAfter.clear()
+                        doAfter(char)
+//                        doAfter.asReversed().forEach { it(char) }
+//                        doAfter.clear()
                     }
                 }
             } else {
                 when(char) {
                     in "1234567~^vmwnupqsz" -> {
-                        doAfter.asReversed().forEach { it(char) }
-                        doAfter.clear()
+                        doAfter(char)
+//                        doAfter.asReversed().forEach { it(char) }
+//                        doAfter.clear()
                     }
                 }
             }
