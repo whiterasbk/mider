@@ -392,7 +392,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                         list.last().cast<Chord>().arpeggio = ArpeggioType.Downward
                 }
 
-                '↑', '∧' -> {
+                '↑', '∧', '高' -> {
                     checkSuffixModifyAvailable()
                     if (list.last() is HasOctave) list.last().cast<HasOctave>().higherOctave()
                 }
@@ -406,12 +406,12 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                     }
                 }
 
-                '↓', '∨' -> {
+                '↓', '∨', '低' -> {
                     checkSuffixModifyAvailable()
                     if (list.last() is HasOctave) list.last().cast<HasOctave>().lowerOctave()
                 }
 
-                '#', '♯' -> {
+                '#', '♯', '升' -> {
                     doAfter += {
                         (list.last() as? HasFlatAndSharp)?.sharp()
                     }
@@ -424,7 +424,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                     }
                 }
 
-                '$', '♭' -> {
+                '$', '♭', '降' -> {
                     doAfter += {
                         if (list.last() is Note)
                             list.last().cast<Note>().flap()
