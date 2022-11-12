@@ -550,14 +550,23 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
 
                 '[' -> {
                     checkSuffixModifyAvailable()
-                    val lyric = afterMacro.nextGivenChar(index, ']', 10)
+                    val lyric = afterMacro.nextGivenChar(index, ']', 1024)
                     skipper = lyric.count()
 
-                    if (list.last() is Note) {
-                        list.last().cast<Note>().attach = NoteAttach(lyric = lyric)
-                    } else if (list.last() is Chord) {
-                        list.last().cast<Chord>().attach = ChordAttach(lyric = lyric)
+                    val words = lyric.split("_")
+                    val affectNotes = getLyricAffectedNotes(list, words.size)
+                    affectNotes.forEachIndexed { index, noc ->
+                        when (noc) {
+                            is Note -> noc.attach = NoteAttach(lyric = words[index])
+                            is Chord -> noc.attach = ChordAttach(lyric = words[index])
+                        }
                     }
+
+//                    if (list.last() is Note) {
+//                        list.last().cast<Note>().attach = NoteAttach(lyric = lyric)
+//                    } else if (list.last() is Chord) {
+//                        list.last().cast<Chord>().attach = ChordAttach(lyric = lyric)
+//                    }
                 }
 
                 '{' -> {
@@ -813,4 +822,22 @@ class MiderCodeParserConfigurationBuilder(private val config: MiderCodeParserCon
     }
 
     fun build(): MiderCodeParserConfiguration = config
+}
+
+fun getLyricAffectedNotes(list: List<InMusicScore>, lyrics: Int): List<InMusicScore> {
+    var counter = 0
+    val ret = mutableListOf<InMusicScore>()
+    list.reversed().forEach {
+        if (counter == lyrics) return@forEach
+
+        when (it) {
+            is Note, is Chord -> {
+                ret += it
+                counter ++
+            }
+        }
+    }
+
+    if (counter != lyrics) throw Exception("there are $lyrics note/chord need to pair lyric, but $counter provide.")
+    return ret.reversed()
 }

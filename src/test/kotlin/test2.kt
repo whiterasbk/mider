@@ -9,6 +9,7 @@ fun main(args: Array<String>) {
 
 //    val k = produceCore(">g>{onC}{offC}")
 //    k.logs.forEach(::println)
+
     play {
 
         +"#c:b:a:#d:\$e"
