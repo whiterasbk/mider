@@ -220,7 +220,7 @@ class ActionStack <P, R> : Stack<(P) -> R>() {
     }
 }
 
-fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, iDefaultGap: RelativeTicks? = null, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
+fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVelocity: Int = iVelocity, iOffVelocity: Int = iVelocity, iDurationDefault: Double = .25, iIsStave: Boolean = true, iDefaultChannel: Int? = null, iDefaultGap: RelativeTicks? = null, iUseMandarinOnomatopoeia: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()): List<InMusicScore> {
 
     var pitch = iPitch
     var velocity = iVelocity
@@ -228,6 +228,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
     var offVelocity = iOffVelocity
     var durationDefault = iDurationDefault
     var isStave = iIsStave
+    var useMandarinOnomatopoeia = iUseMandarinOnomatopoeia
     var defaultChannel = iDefaultChannel
     var defaultGap = iDefaultGap
 
@@ -294,11 +295,41 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                 noteOffVelocity = offVelocity
 
                             defaultChannel?.let { attach = NoteAttach(channel = it) } ?: attach?.clearChannel()
-//                                attach?.let { it.channel = null }
 
                             defaultGap?.let { attach = NoteAttach(gap = it) } ?: attach?.clearGap()
                         }
                     }
+                }
+
+                in "多哆瑞来米咪发唆嗦索拉啦稀西希" -> {
+                    if (useMandarinOnomatopoeia) {
+                        list += Note(when (char) {
+                            '哆', '多' -> 'C'
+                            '来', '瑞' -> 'D'
+                            '咪', '米' -> 'E'
+                            '发' -> 'F'
+                            '唆', '嗦', '索' -> 'G'
+                            '拉', '啦' -> 'A'
+                            '稀', '西', '希' -> 'B'
+                            else -> throw Exception("unsupported mandarin onomatopoeia: $char")
+                        }, pitch, DurationDescribe(default = durationDefault), velocity).apply {
+                            if (onVelocity != velocity)
+                                noteOnVelocity = onVelocity
+
+                            if (offVelocity != velocity)
+                                noteOffVelocity = offVelocity
+
+                            defaultChannel?.let { attach = NoteAttach(channel = it) } ?: attach?.clearChannel()
+
+                            defaultGap?.let { attach = NoteAttach(gap = it) } ?: attach?.clearGap()
+                        }
+                    }
+
+                // 加入中文拟声词支持确实不太符合规范
+                // 但是 midercode 的目标是做到简单易用方便读写
+                // 支不支持中文拟声词可有可无, 也不占用符号
+                // 如果加入这一支持能使得第一次接触的人在输入方法和符号系统的障碍稍微小一点
+                // 那么也算是对这套体系有所贡献吧
                 }
 
                 in '0'..'9' -> {
@@ -553,20 +584,18 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                     val lyric = afterMacro.nextGivenChar(index, ']', 1024)
                     skipper = lyric.count()
 
-                    val words = lyric.split("_")
+                    val words = lyric.split(" ")
                     val affectNotes = getLyricAffectedNotes(list, words.size)
-                    affectNotes.forEachIndexed { index, noc ->
-                        when (noc) {
-                            is Note -> noc.attach = NoteAttach(lyric = words[index])
-                            is Chord -> noc.attach = ChordAttach(lyric = words[index])
+                    affectNotes.forEachIndexed { lyricIndex, noc ->
+                        words[lyricIndex].let {
+                            if (it != "_") {
+                                when (noc) {
+                                    is Note -> noc.attach = NoteAttach(lyric = it)
+                                    is Chord -> noc.attach = ChordAttach(lyric = it)
+                                }
+                            }
                         }
                     }
-
-//                    if (list.last() is Note) {
-//                        list.last().cast<Note>().attach = NoteAttach(lyric = lyric)
-//                    } else if (list.last() is Chord) {
-//                        list.last().cast<Chord>().attach = ChordAttach(lyric = lyric)
-//                    }
                 }
 
                 '{' -> {
@@ -588,6 +617,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                                         offVelocity = velocity
                                     }
                                     "stave", "s" -> isStave = kv[1].toBoolean()
+                                    "mandarinOnomatopoeia", "moia" -> useMandarinOnomatopoeia = kv[1].toBoolean()
                                     "channel", "c" -> defaultChannel = kv[1].let {
                                         if (it == "default" || it == "null") null else it.toInt()
                                     }
@@ -705,16 +735,20 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                 when(char) {
                     in "abcdefgABCDEFG~^vmwnui!pqsz" -> {
                         doAfter(char)
-//                        doAfter.asReversed().forEach { it(char) }
-//                        doAfter.clear()
+                    }
+
+                    in "多哆瑞来米咪发唆嗦索拉啦稀西希" -> {
+                        if (useMandarinOnomatopoeia) doAfter(char)
                     }
                 }
             } else {
                 when(char) {
                     in "1234567~^vmwnupqsz" -> {
                         doAfter(char)
-//                        doAfter.asReversed().forEach { it(char) }
-//                        doAfter.clear()
+                    }
+
+                    in "多哆瑞来米咪发唆嗦索拉啦稀西希" -> {
+                        if (useMandarinOnomatopoeia) doAfter(char)
                     }
                 }
             }

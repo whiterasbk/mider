@@ -130,6 +130,9 @@ class MiderDSL(
         }
     var onVelocity = velocity
     var offVelocity = velocity
+    // 是否启用中文拟声词
+    var useMandarinOnomatopoeia = true
+
 
     var program: MidiInstrument = MidiInstrument.piano
         set(value) {
@@ -435,7 +438,7 @@ class MiderDSL(
 
     //todo
     operator fun String.invoke(isStave: Boolean = true, useMacro: Boolean = true, config: MacroConfiguration = MacroConfiguration()) {
-        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, channel, gap, useMacro, config)
+        container += toInMusicScoreList(this, pitch, velocity, onVelocity, offVelocity, duration, isStave, channel, gap, useMacro, useMandarinOnomatopoeia, config)
     }
 
     @Tested

@@ -30,8 +30,8 @@ fun main(args: Array<String>) {
 
 
     play {
-        +"c a b c aooo boooo [n_b]"
-//        container.mainList.forEach(::println)
+        +"多 啦低 升啦[n b _]"
+        container.mainList.forEach(::println)
     }
 
 
