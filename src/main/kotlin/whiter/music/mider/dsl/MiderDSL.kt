@@ -5,6 +5,7 @@ import whiter.music.mider.annotation.Tested
 import whiter.music.mider.code.MacroConfiguration
 import whiter.music.mider.code.toInMusicScoreList
 import whiter.music.mider.descr.*
+import whiter.music.mider.lyric.multiLyricResolve
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.pow
@@ -704,7 +705,8 @@ class MiderDSL(
 
     @Tested
     operator fun Note.get(lyric: String): Note {
-        attach = NoteAttach(lyric = lyric)
+        multiLyricResolve(lyric, container.currentList)
+//        attach = NoteAttach(lyric = lyric)
         return this
     }
 

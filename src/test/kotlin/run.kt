@@ -31,6 +31,7 @@ fun main(args: Array<String>) {
 
     play {
         +"多 啦低 升啦[n b _]"
+        B; C; A["1 2"]
         container.mainList.forEach(::println)
     }
 

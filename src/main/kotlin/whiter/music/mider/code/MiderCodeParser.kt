@@ -3,6 +3,7 @@ package whiter.music.mider.code
 import whiter.music.mider.*
 import whiter.music.mider.descr.*
 import whiter.music.mider.descr.Note
+import whiter.music.mider.lyric.multiLyricResolve
 import java.lang.StringBuilder
 import java.util.*
 import java.io.File
@@ -583,19 +584,7 @@ fun toInMusicScoreList(seq: String, iPitch: Int = 4, iVelocity: Int = 100, iOnVe
                     checkSuffixModifyAvailable()
                     val lyric = afterMacro.nextGivenChar(index, ']', 1024)
                     skipper = lyric.count()
-
-                    val words = lyric.split(" ")
-                    val affectNotes = getLyricAffectedNotes(list, words.size)
-                    affectNotes.forEachIndexed { lyricIndex, noc ->
-                        words[lyricIndex].let {
-                            if (it != "_") {
-                                when (noc) {
-                                    is Note -> noc.attach = NoteAttach(lyric = it)
-                                    is Chord -> noc.attach = ChordAttach(lyric = it)
-                                }
-                            }
-                        }
-                    }
+                    multiLyricResolve(lyric, list)
                 }
 
                 '{' -> {
