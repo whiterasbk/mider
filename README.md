@@ -20,7 +20,9 @@
 名称抄袭自 [mido](https://github.com/mido/mido)
 
 ### 安装
-使用`gradle`
+使用 `gradle`
+
+建议 `jdk` 版本: **11**
 
 在`build.gradle`添加如下代码
 
