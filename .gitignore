@@ -56,3 +56,22 @@ build/
 
 !/gradle/wrapper/gradle-wrapper.jar
 
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+gpr.properties
+kotlin-js-store
+
+
+
+

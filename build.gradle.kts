@@ -1,51 +1,105 @@
-buildscript {
-    repositories {
-        maven { url = uri("https://maven.aliyun.com/nexus/content/groups/public") }
-        mavenCentral()
-    }
-}
-
 plugins {
-    kotlin("jvm") version "1.8.21" 
+    kotlin("multiplatform") version "1.9.0"
     id("org.jetbrains.dokka") version "1.8.20"
     `maven-publish`
     application
 }
 
-
-val projectVersion = "0.9.18"
-
-group = "whiter.music"
-version = projectVersion
+group = "org.mider"
+version = "beta0.9.19"
 
 repositories {
-    maven { url = uri("https://jitpack.io") }
     mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
+    maven { url = uri("https://jitpack.io") }
+
+    maven {
+        url = uri("https://maven.pkg.github.com/whiterasbk/slowxml")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+kotlin {
+    jvm {
+        jvmToolchain(8)
+        withJava()
+        testRuns.named("test") {
+            executionTask.configure {
+                useJUnitPlatform()
+            }
+        }
+    }
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
-    testImplementation ("cn.hutool:hutool-all:5.8.3")
-    testImplementation("com.belerweb:pinyin4j:2.5.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    js {
+        binaries.executable()
+        browser {
+            commonWebpackConfig {
+                cssSupport {
+                    enabled.set(true)
+                }
+            }
+        }
+    }
+
+    sourceSets {
+        val commonMain by getting
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation("com.github.whiterasbk:slowxml:0.2.1")
+            }
+        }
+
+        val jvmMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-server-netty:2.0.2")
+                implementation("io.ktor:ktor-server-html-builder-jvm:2.0.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.7.2")
+            }
+        }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation ("cn.hutool:hutool-all:5.8.3")
+                implementation("com.belerweb:pinyin4j:2.5.1")
+            }
+        }
+
+        val jsMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react:18.2.0-pre.346")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:18.2.0-pre.346")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-emotion:11.9.3-pre.346")
+            }
+        }
+
+        val jsTest by getting
+    }
 }
 
 application {
-    mainClass.set("whiter.music.mider.practise.absolutepitch.RandomC2Kt")
+    mainClass.set("org.example.test.application.ServerKt")
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks.named<Copy>("jvmProcessResources") {
+    val jsBrowserDistribution = tasks.named("jsBrowserDistribution")
+    from(jsBrowserDistribution)
+}
+
+tasks.named<JavaExec>("run") {
+    dependsOn(tasks.named<Jar>("jvmJar"))
+    classpath(tasks.named<Jar>("jvmJar"))
 }
 
 publishing {
     publications {
         create<MavenPublication>("release") {
             groupId = "com.github.whiterasbk"
-            artifactId = "mider"
-            version = projectVersion
+            artifactId = project.name
+            version = project.version.toString()
             from(components["kotlin"])
         }
     }
