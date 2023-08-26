@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.plugin.extraProperties
+import java.util.Properties
+
 plugins {
     kotlin("multiplatform") version "1.9.0"
     id("org.jetbrains.dokka") version "1.8.20"
@@ -8,11 +11,19 @@ plugins {
 group = "org.mider"
 version = "beta0.9.19"
 
+if (file("gpr.properties").exists()) {
+    Properties().apply {
+        load(file("gpr.properties").inputStream())
+        rootProject.extraProperties["gpr.user"] = this["gpr.user"]
+        rootProject.extraProperties["gpr.key"] = this["gpr.key"]
+    }
+}
+
 repositories {
     mavenCentral()
+    mavenLocal()
     maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
     maven { url = uri("https://jitpack.io") }
-
     maven {
         url = uri("https://maven.pkg.github.com/whiterasbk/slowxml")
         credentials {
