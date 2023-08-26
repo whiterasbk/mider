@@ -25,7 +25,17 @@ fun <E> List<E>.removeLastAndReturnSelf(count: Int = 1): List<E> {
     return list
 }
 
+operator fun StringBuilder.plusAssign(any: Any) {
+    append(any)
+}
+
 fun String.trimLines(): String = lines().map { it.trim() }.joinToString("")
+
+operator fun String.times(times: Int) : String {
+    val sb = StringBuilder()
+    for (i in 0..< times) sb += this
+    return sb.toString()
+}
 
 fun generateNoteString(name: String, duration: Double = .25, pitch: Int = 4, velocity: Int = 100): String {
     val rp = when (name.last()) {
