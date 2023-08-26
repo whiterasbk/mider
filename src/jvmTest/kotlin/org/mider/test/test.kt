@@ -3,12 +3,12 @@ package org.mider.test
 import org.mider.dsl.apply
 import org.mider.dsl.play
 
-fun main(vararg args: String) {
-    apply("src/test/resources/oyasumi.mid") {
-        +"59833598225981112"
+fun main() {
+    applyInTestResDir("oyasumi.mid") {
+        "59833598225981112"(isStave = false)
     }
 
     play {
-        +"#115566#5 1*2*7 45222↑ 66!6i"
+        "#115566#5 1*2*7 45222↑ 66!6i"(isStave = false)
     }
 }

@@ -1,15 +1,5 @@
 package org.mider.test
 
-import org.mider.xml.*
-import org.mider.descr.*
-import org.mider.dsl.*
-import kotlin.test.Test
-import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.DisplayName
-import org.mider.code.toInMusicScoreList
-import java.io.File
-
 
 //
 //class TestMiderCodeParser : ABTestInMusicScore() {

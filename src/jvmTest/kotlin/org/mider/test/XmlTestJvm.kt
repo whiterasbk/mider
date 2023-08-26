@@ -10,7 +10,7 @@ import kotlin.test.Test
 class XmlTestJvm {
     @Test
     fun testOutputFile() {
-        val path = "build/out.xml"
+        val path = testResourcesDirPath + "out.xml"
         MusicXml().part {
             measure {
                 attr(AttributesElement().addDefault())

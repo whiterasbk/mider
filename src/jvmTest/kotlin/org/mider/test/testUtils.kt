@@ -7,7 +7,6 @@ import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat
 import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
 import net.sourceforge.pinyin4j.format.HanyuPinyinVCharType
 
-fun String.formatXml(): String = XmlUtil.format(this)
 
 //fun String.trimLines(): String = lines().map { it.trim() }.joinToString("")
 //
@@ -25,15 +24,7 @@ fun String.formatXml(): String = XmlUtil.format(this)
 //    return list
 //}
 
-inline operator fun StringBuilder.plusAssign(any: Any) {
-    append(any)
-}
 
-operator fun String.times(times: Int) : String {
-    val sb = StringBuilder()
-    for (i in 0..< times) sb += this
-    return sb.toString()
-}
 
 
 

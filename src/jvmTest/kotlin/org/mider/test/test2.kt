@@ -3,7 +3,7 @@ package org.mider.test
 import org.mider.descr.Chord
 import org.mider.dsl.play
 
-fun main(args: Array<String>) {
+fun main() {
 
 //    val k = produceCore(">g>{onC}{offC}")
 //    k.logs.forEach(::println)

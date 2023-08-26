@@ -2,8 +2,8 @@ package org.mider.test
 
 import org.mider.dsl.apply
 
-fun main(args: Array<String>) {
-    apply("src/test/resources/next to you.xml") {
+fun main() {
+    applyInTestResDir("next to you.xml") {
         pitch = 5
         bpm = 120
         duration = 1.0/8

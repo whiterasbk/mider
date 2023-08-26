@@ -2,9 +2,8 @@ package org.mider.test
 
 import org.mider.dsl.apply
 
-
-fun main(args: Array<String>) {
-    apply("src/test/resources/saigetsu.mid") {
+fun main() {
+    apply(testResourcesDirPath + "saigetsu.mid") {
         bpm = 90
 
         "Cminor" { // 使用 C 小调

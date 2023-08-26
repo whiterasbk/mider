@@ -25,12 +25,15 @@ import org.mider.dsl.play
 //    used.filter { it.value == null }.keys.first().println()
 //}
 
-fun main(args: Array<String>) {
+fun main() {
     play {
-        +"多 啦低 升啦[n b _]"
-        B; C; A["1 2"]
-        container.mainList.forEach(::println)
+        // +"多 啦低 升啦[n b _]"
+        // B; C; A["1 2"]
+        // container.mainList.forEach(::println)
+        碎月()
     }
+
+
 
 
 
@@ -279,6 +282,9 @@ fun main(args: Array<String>) {
 
 fun MiderDSL.碎月() {
     "Cminor" {
+
+        bpm *= 2
+
         // 使用 C 小调
         repeat {
             G; B
