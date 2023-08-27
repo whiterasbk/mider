@@ -15,7 +15,7 @@ fun HTML.index() {
     }
     body {
         div {
-            +"Hello from Ktor"
+            +"Hello from Kt7 or"
         }
         div {
             id = "root"
@@ -35,7 +35,4 @@ fun main() {
             }
         }
     }.start(wait = true)
-
-
-
 }
