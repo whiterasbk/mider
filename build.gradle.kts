@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JsModuleKind
+import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.util.Properties
 
@@ -45,6 +47,7 @@ kotlin {
     }
 
     js {
+        useCommonJs()
         binaries.executable()
         browser {
             commonWebpackConfig {
@@ -53,6 +56,7 @@ kotlin {
                 }
             }
         }
+        nodejs()
     }
 
     sourceSets {
@@ -74,16 +78,16 @@ kotlin {
 
         val jvmTest by getting {
             dependencies {
-                implementation ("cn.hutool:hutool-all:5.8.3")
                 implementation("com.belerweb:pinyin4j:2.5.1")
             }
         }
 
         val jsMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-react:18.2.0-pre.346")
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:18.2.0-pre.346")
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-emotion:11.9.3-pre.346")
+                implementation(npm("midi-player-js", "2.0.16"))
+                implementation(npm("jzz-gui-player", "1.6.5"))
+                implementation(npm("@tonejs/midi", "2.0.28"))
+                implementation(npm("tone", "14.7.77"))
             }
         }
 
@@ -104,6 +108,10 @@ tasks.named<JavaExec>("run") {
     dependsOn(tasks.named<Jar>("jvmJar"))
     classpath(tasks.named<Jar>("jvmJar"))
 }
+
+//tasks.named<KotlinJsCompile>("compileKotlinJs").configure {
+//    kotlinOptions.moduleKind = "commonjs"
+//}
 
 publishing {
     publications {
