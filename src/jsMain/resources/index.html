@@ -7,9 +7,225 @@
 <body>
 
 
-sdasssssssssssssssssssssssssssssssss
-<script src="https://cdn.jsdelivr.net/npm/jzz"></script>
-<script src="mider.js"></script>
+<script>
+</script>
 
+
+<script>
+    function play1() {
+        const REAL_TIME_FREQUENCY = 440;
+        const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+        let audioContext = new AudioContext();
+        let myBuffer = audioContext.createBuffer(1, 88200, 44100);
+        let myArray = myBuffer.getChannelData(0);
+        for (let sampleNumber = 0 ; sampleNumber < 88200 ; sampleNumber++) {
+            myArray[sampleNumber] = generateSample(sampleNumber);
+        }
+
+        function generateSample(sampleNumber) {
+            let sampleTime = sampleNumber / 44100;
+            let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+            return Math.sin(sampleAngle);
+        }
+
+        let src = audioContext.createBufferSource();
+        src.buffer = myBuffer;
+        src.connect(audioContext.destination);
+        src.start();
+    }
+
+    function play2() {
+        // Reference note:
+
+        const A4 = 440;
+
+        // Octave jumps:
+
+        const A5 = A4 * Math.pow(2, 1); // Same as 440 * 2
+        const A6 = A4 * Math.pow(2, 2); // Same as 440 * 2 * 2
+
+        const A3 = A4 * Math.pow(2, -1); // Same as 440 / 2
+        const A2 = A4 * Math.pow(2, -2); // Same as 440 / 2 / 2
+
+        // Single note jumps:
+
+        const B4 = A4 * Math.pow(2, 1/12);
+        const C5 = A4 * Math.pow(2, 2/12);
+
+        const G4 = A4 * Math.pow(2, -1/12);
+        const F4 = A4 * Math.pow(2, -2/12);
+
+        const Octave4 = {
+            C: A4 * Math.pow(2, 3/12) / 2,
+            Cs: A4 * Math.pow(2, 4/12) / 2,
+            D: A4 * Math.pow(2, 5/12) / 2,
+            Ds: A4 * Math.pow(2, 6/12) / 2,
+            E: A4 * Math.pow(2, 7/12) / 2,
+            F: A4 * Math.pow(2, 8/12) / 2,
+            Fs: A4 * Math.pow(2, 9/12) / 2,
+            G: A4 * Math.pow(2, 10/12) / 2,
+            Gs: A4 * Math.pow(2, 11/12) / 2,
+            A: A4,
+            As: A4 * Math.pow(2, 1/12),
+            B: A4 * Math.pow(2, 2/12),
+        }
+
+        let audioCtx = new AudioContext();
+
+        let osc = audioCtx.createOscillator();
+
+        // osc.frequency.value = 440;
+        // osc.frequency.setValueAtTime(440 * Math.pow(2, 1/12), audioCtx.currentTime + 1);
+        // osc.frequency.setValueAtTime(440 * Math.pow(2, 2/12), audioCtx.currentTime + 2);
+
+        let it = 1
+
+        p(Octave4.C)
+        p(Octave4.C)
+        p(Octave4.G)
+        p(Octave4.G)
+        p(Octave4.A)
+        p(Octave4.A)
+        p(Octave4.G)
+
+
+        for (let i in Octave4) {
+            osc.frequency.setValueAtTime(Octave4[i], audioCtx.currentTime + (it ++))
+            console.log(Octave4[i])
+        }
+
+
+
+        function p(n) {
+            osc.frequency.setValueAtTime(n, audioCtx.currentTime + (it ++))
+        }
+
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (it ++));
+    }
+
+    function play3() {
+        let audioCtx = new AudioContext(); // Run / Edit
+
+        let osc = audioCtx.createOscillator();
+
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(
+            440 * Math.pow(2, 1/12),
+            audioCtx.currentTime + 1
+        );
+
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 3);
+    }
+
+    function play4() {
+        const G4 = 440 * Math.pow(2, -2/12);
+        const A4 = 440;
+        const F4 = 440 * Math.pow(2, -4/12);
+        const F3 = 440 * Math.pow(2, -16/12);
+        const C4 = 440 * Math.pow(2, -9/12);
+
+        let audioCtx = new AudioContext();
+        let osc = audioCtx.createOscillator();
+
+        let t = audioCtx.currentTime;
+        osc.frequency.setValueAtTime(G4, t);
+        osc.frequency.setValueAtTime(G4, t + 0.95);
+        osc.frequency.exponentialRampToValueAtTime(A4, t + 1);
+        osc.frequency.setValueAtTime(A4, t + 1.95);
+        osc.frequency.exponentialRampToValueAtTime(F4, t + 2);
+        osc.frequency.setValueAtTime(F4, t + 2.95);
+        osc.frequency.exponentialRampToValueAtTime(F3, t + 3);
+        osc.frequency.setValueAtTime(F3, t + 3.95);
+        osc.frequency.exponentialRampToValueAtTime(C4, t + 4);
+
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 5); // Stop after two seconds
+    }
+
+    function play5() {
+        let audioCtx = new AudioContext();
+
+        let osc1 = audioCtx.createOscillator();
+        let osc2 = audioCtx.createOscillator();
+        let osc3 = audioCtx.createOscillator();
+
+        let masterGain = audioCtx.createGain();
+
+        osc1.frequency.value = 440;
+        osc2.frequency.value = 550;
+        osc3.frequency.value = 660;
+        masterGain.gain.value = 0.3;
+
+        osc1.connect(masterGain);
+        osc2.connect(masterGain);
+        osc3.connect(masterGain);
+        masterGain.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc3.start();
+    }
+
+    function play8() {
+        let audioCtx = new AudioContext();
+        let osc1 = audioCtx.createOscillator();
+        let osc2 = audioCtx.createOscillator();
+        let gain1 = audioCtx.createGain();
+
+        let osc3 = audioCtx.createOscillator();
+        let osc4 = audioCtx.createOscillator();
+        let gain2 = audioCtx.createGain();
+
+        let osc5 = audioCtx.createOscillator();
+        let osc6 = audioCtx.createOscillator();
+        let gain3 = audioCtx.createGain();
+
+        let masterGain = audioCtx.createGain();
+
+        osc1.frequency.value = 330;
+        osc2.frequency.value = 330.2;
+        gain1.gain.value = 0.5;
+
+        osc3.frequency.value = 440;
+        osc4.frequency.value = 440.33;
+        gain2.gain.value = 0.5;
+
+        osc5.frequency.value = 587;
+        osc6.frequency.value = 587.25;
+        gain3.gain.value = 0.5;
+
+        masterGain.gain.value = 0.5;
+
+        osc1.connect(gain1);
+        osc2.connect(gain1);
+        gain1.connect(masterGain);
+
+        osc3.connect(gain2);
+        osc4.connect(gain2);
+        gain2.connect(masterGain);
+
+        osc5.connect(gain3);
+        osc6.connect(gain3);
+        gain3.connect(masterGain);
+
+        masterGain.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc3.start();
+        osc4.start();
+        osc5.start();
+        osc6.start();
+    }
+</script>
+
+<button onclick="play8()">hello</button>
+<script src="mider.js"></script>
 </body>
 </html>
