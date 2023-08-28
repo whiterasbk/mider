@@ -87,6 +87,8 @@ kotlin {
                 implementation(npm("midi-player-js", "2.0.16"))
                 implementation(npm("jzz-gui-player", "1.6.5"))
                 implementation(npm("@tonejs/midi", "2.0.28"))
+                // test
+                implementation(npm("is-sorted", "1.0.5"))
                 implementation(npm("tone", "14.7.77"))
             }
         }
