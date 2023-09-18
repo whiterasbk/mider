@@ -1,6 +1,7 @@
 
 package org.mider.test
 
+import org.junit.jupiter.api.Test
 import org.mider.MidiInstrument
 import org.mider.dsl.MiderDSL
 import org.mider.dsl.play
@@ -25,12 +26,27 @@ import org.mider.dsl.play
 //    used.filter { it.value == null }.keys.first().println()
 //}
 
+
+class Testing {
+    @Test
+    fun test_play() {
+
+    }
+}
+
 fun main() {
     play {
+        // 碎月()
+
+
+
+
+
+
         // +"多 啦低 升啦[n b _]"
         // B; C; A["1 2"]
         // container.mainList.forEach(::println)
-        碎月()
+//        碎月()
     }
 
 
