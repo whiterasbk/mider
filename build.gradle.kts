@@ -79,6 +79,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation("com.belerweb:pinyin4j:2.5.1")
+                implementation("com.github.nwaldispuehl:java-lame:v3.98.4")
             }
         }
 
