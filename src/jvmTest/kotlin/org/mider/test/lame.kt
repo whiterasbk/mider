@@ -41,10 +41,22 @@ fun main() {
     val hash = "#"
     val list1 = listOf("C4", "${hash}C4", "D4", "${hash}D4", "E4", "F4", "${hash}F4", "G4", "${hash}G4", "A4", "${hash}A4", "B4", "C5")
     val list2 = listOf("C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5")
-    for (s in list1) {
-        println("g: $s")
-        gMp3(s)
+    val list3 = mutableListOf<String>()
+
+    val octave = listOf(5, 6)
+    for (o in octave) {
+        for (nn in arrayOf("C", "${hash}C", "D", "${hash}D", "E", "F", "${hash}F", "G", "${hash}G", "A", "${hash}A", "B")) {
+            println("g: $nn$o")
+            gMp3("$nn$o")
+        }
     }
+
+//     for (s in list1) {
+//        println("g: $s")
+//         gMp3(s)
+//    }
+    File(testResourcesDir.path + "/musicbox/", "sa.mp3").writeBytes(midi2mp3Stream(midiStream = fromDsl { musicbox() }.inStream()).readBytes())
+
 }
 
 fun midi2mp3Stream(USE_VARIABLE_BITRATE: Boolean = false, GOOD_QUALITY_BITRATE: Int = 256, midiStream: InputStream): ByteArrayInputStream {
